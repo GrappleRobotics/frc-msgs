@@ -57,7 +57,7 @@ pub struct FrcCanData {
 }
 
 impl FrcCanData {
-  fn from_frame(frame: &Frame) -> Option<FrcCanData> {
+  pub fn from_frame(frame: &Frame) -> Option<FrcCanData> {
     match (frame.id(), frame.data()) {
       (Id::Extended(id), Some(data)) => {
         let mut fcd = FrcCanData { id: id.into(), data: [0u8; 8], len: data.len() as u8 };
@@ -70,7 +70,7 @@ impl FrcCanData {
     }
   }
 
-  fn to_frame(&self) -> Frame {
+  pub fn to_frame(&self) -> Frame {
     Frame::new_data(Into::<ExtendedId>::into(self.id.clone()), Data::new(&self.data[0..self.len as usize]).unwrap())
   }
 }
