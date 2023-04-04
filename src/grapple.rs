@@ -80,9 +80,9 @@ impl FrcCanEncodable for GrappleDeviceInfo {
 pub enum GrappleFirmware {
   UpdateRequest { serial: u32 },
   UpdateReady { serial: u32 },
-  UpdatePart { data: [u8; 8], len: u8 },
-  UpdatePartAck,
-  UpdateDone
+  UpdatePart { serial: u32, data: [u8; 4], len: u8 },
+  UpdatePartAck { serial: u32 },
+  UpdateDone { serial: u32 }
 }
 
 impl FrcCanDecodable for GrappleFirmware {
@@ -91,9 +91,9 @@ impl FrcCanDecodable for GrappleFirmware {
     match data.id.api_index {
       0x00 if data.len == 4 => Some(Self::UpdateRequest { serial: read_u32(&data.data) }),
       0x01 if data.len == 4 => Some(Self::UpdateReady { serial: read_u32(&data.data) }),
-      0x02 => Some(Self::UpdatePart { data: data.data.clone(), len: data.len }),
-      0x03 => Some(Self::UpdatePartAck),
-      0x04 => Some(Self::UpdateDone),
+      0x02 => Some(Self::UpdatePart { serial: read_u32(&data.data), data: [data.data[4], data.data[5], data.data[6], data.data[7]], len: data.len }),
+      0x03 => Some(Self::UpdatePartAck { serial: read_u32(&data.data) }),
+      0x04 => Some(Self::UpdateDone { serial: read_u32(&data.data) }),
       _ => None
     }
   }
@@ -118,16 +118,20 @@ impl FrcCanEncodable for GrappleFirmware {
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         crate::FrcCanData { id, data, len: 4 }
       },
-      GrappleFirmware::UpdatePart { data, len } => {
+      GrappleFirmware::UpdatePart { serial, data: fw_data, len } => {
         id.api_index = 0x02;
+        data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
+        data[4..=7].copy_from_slice(fw_data.as_slice());
         crate::FrcCanData { id, data: data.clone(), len: *len }
       },
-      GrappleFirmware::UpdatePartAck => {
+      GrappleFirmware::UpdatePartAck { serial } => {
         id.api_index = 0x03;
+        data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         crate::FrcCanData { id, data, len: 0 }
       },
-      GrappleFirmware::UpdateDone => {
+      GrappleFirmware::UpdateDone { serial } => {
         id.api_index = 0x04;
+        data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         crate::FrcCanData { id, data, len: 0 }
       },
     }
@@ -251,9 +255,9 @@ mod test {
   fn test_firmware() {
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateRequest { serial: 0xDEADBEEF }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateReady { serial: 0xDEADBEEF }));
-    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePart { data: [0, 1, 2, 3, 4, 5, 6, 7], len: 8 }));
-    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePartAck));
-    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateDone));
+    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePart { serial: 0xDEADBEEF, data: [0, 1, 2, 3], len: 4 }));
+    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePartAck { serial: 0xDEADBEEF }));
+    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateDone { serial: 0xDEADBEEF }));
   }
 
   #[test]
