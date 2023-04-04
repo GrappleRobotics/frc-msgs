@@ -3,7 +3,7 @@
 pub mod ni;
 pub mod grapple;
 
-use bxcan::ExtendedId;
+use bxcan::{ExtendedId, Frame, Id, Data};
 use grapple::Grapple;
 use ni::Ni;
 
@@ -54,6 +54,25 @@ pub struct FrcCanData {
   pub id: FrcCanId,
   pub data: [u8; 8],
   pub len: u8
+}
+
+impl FrcCanData {
+  fn from_frame(frame: &Frame) -> Option<FrcCanData> {
+    match (frame.id(), frame.data()) {
+      (Id::Extended(id), Some(data)) => {
+        let mut fcd = FrcCanData { id: id.into(), data: [0u8; 8], len: data.len() as u8 };
+        for (i, d) in data.iter().enumerate() {
+          fcd.data[i] = *d;
+        }
+        Some(fcd)
+      },
+      _ => None
+    }
+  }
+
+  fn to_frame(&self) -> Frame {
+    Frame::new_data(Into::<ExtendedId>::into(self.id.clone()), Data::new(&self.data[0..self.len as usize]).unwrap())
+  }
 }
 
 pub trait FrcCanEncodable {
