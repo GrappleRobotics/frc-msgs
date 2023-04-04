@@ -122,17 +122,17 @@ impl FrcCanEncodable for GrappleFirmware {
         id.api_index = 0x02;
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         data[4..=7].copy_from_slice(fw_data.as_slice());
-        crate::FrcCanData { id, data: data.clone(), len: *len }
+        crate::FrcCanData { id, data: data.clone(), len: 4 + *len }
       },
       GrappleFirmware::UpdatePartAck { serial } => {
         id.api_index = 0x03;
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
-        crate::FrcCanData { id, data, len: 0 }
+        crate::FrcCanData { id, data, len: 4 }
       },
       GrappleFirmware::UpdateDone { serial } => {
         id.api_index = 0x04;
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
-        crate::FrcCanData { id, data, len: 0 }
+        crate::FrcCanData { id, data, len: 4 }
       },
     }
   }
