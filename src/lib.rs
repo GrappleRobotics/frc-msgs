@@ -24,21 +24,18 @@ impl FrcCanId {
   }
 }
 
-impl Into<ExtendedId> for FrcCanId {
-  fn into(self) -> ExtendedId {
-    let id = ((self.device_type as u8 as u32 & 0b11111) << 24) 
+impl Into<u32> for FrcCanId {
+  fn into(self) -> u32 {
+    ((self.device_type as u8 as u32 & 0b11111) << 24) 
       | ((self.manufacturer as u8 as u32 & 0b11111111) << 16)
       | ((self.api_class as u32 & 0b111111) << 10)
       | ((self.api_index as u32 & 0b1111) << 6)
-      | (self.device_id as u32 & 0b111111);
-    
-    ExtendedId::new(id).unwrap()
+      | (self.device_id as u32 & 0b111111)
   }
 }
 
-impl From<ExtendedId> for FrcCanId {
-  fn from(value: ExtendedId) -> Self {
-    let raw = value.as_raw();
+impl From<u32> for FrcCanId {
+  fn from(raw: u32) -> Self {
     Self {
       device_type: ((raw >> 24) & 0b11111) as u8,
       manufacturer: ((raw >> 16) & 0b11111111) as u8,
@@ -46,6 +43,20 @@ impl From<ExtendedId> for FrcCanId {
       api_index: ((raw >> 6) & 0b1111) as u8,
       device_id: (raw & 0b111111) as u8,
     }
+  }
+}
+
+impl Into<ExtendedId> for FrcCanId {
+  fn into(self) -> ExtendedId {
+    let id: u32 = self.into();
+    ExtendedId::new(id).unwrap()
+  }
+}
+
+impl From<ExtendedId> for FrcCanId {
+  fn from(value: ExtendedId) -> Self {
+    let raw = value.as_raw();
+    Self::from(raw)
   }
 }
 
