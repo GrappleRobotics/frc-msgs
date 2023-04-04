@@ -91,9 +91,9 @@ impl FrcCanDecodable for GrappleFirmware {
     match data.id.api_index {
       0x00 if data.len == 4 => Some(Self::UpdateRequest { serial: read_u32(&data.data) }),
       0x01 if data.len == 4 => Some(Self::UpdateReady { serial: read_u32(&data.data) }),
-      0x02 => Some(Self::UpdatePart { serial: read_u32(&data.data), data: [data.data[4], data.data[5], data.data[6], data.data[7]], len: data.len }),
-      0x03 => Some(Self::UpdatePartAck { serial: read_u32(&data.data) }),
-      0x04 => Some(Self::UpdateDone { serial: read_u32(&data.data) }),
+      0x02 => Some(Self::UpdatePart { serial: read_u32(&data.data), data: [data.data[4], data.data[5], data.data[6], data.data[7]], len: data.len - 4 }),
+      0x03 if data.len == 4 => Some(Self::UpdatePartAck { serial: read_u32(&data.data) }),
+      0x04 if data.len == 4 => Some(Self::UpdateDone { serial: read_u32(&data.data) }),
       _ => None
     }
   }
@@ -255,7 +255,7 @@ mod test {
   fn test_firmware() {
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateRequest { serial: 0xDEADBEEF }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateReady { serial: 0xDEADBEEF }));
-    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePart { serial: 0xDEADBEEF, data: [0, 1, 2, 3], len: 4 }));
+    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePart { serial: 0xDEADBEEF, data: [0, 1, 2, 0], len: 3 }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePartAck { serial: 0xDEADBEEF }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateDone { serial: 0xDEADBEEF }));
   }
