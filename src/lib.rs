@@ -1,4 +1,4 @@
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(feature="std"), no_std)]
 
 pub mod ni;
 pub mod grapple;
@@ -8,6 +8,7 @@ use grapple::Grapple;
 use ni::Ni;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FrcCanId {
   pub device_type: u8,
   pub manufacturer: u8,
@@ -61,6 +62,7 @@ impl From<ExtendedId> for FrcCanId {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FrcCanData {
   pub id: FrcCanId,
   pub data: [u8; 8],
@@ -112,6 +114,7 @@ pub const DEVICE_IO_BREAKOUT: u8 = 11;
 pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum CanMessage {
   Ni(Ni),
   Grapple(Grapple)

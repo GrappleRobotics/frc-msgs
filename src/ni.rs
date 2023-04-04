@@ -1,6 +1,7 @@
 use crate::{FrcCanData, FrcCanDecodable};
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Ni {
   RioHeartbeat
 }

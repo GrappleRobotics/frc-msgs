@@ -15,12 +15,14 @@ fn read_u16(data: &[u8]) -> u16 {
 /* DEVICE INFO */
 
 #[derive(Debug, Clone, Copy, PartialEq, strum_macros::FromRepr)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum GrappleModelId {
   LaserCan = 0
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleDeviceInfo {
   EnumerateRequest,
   EnumerateResponse { device_id: u8, model_id: GrappleModelId, firmware_version: [u8; 3], serial: u32 },
@@ -74,6 +76,7 @@ impl FrcCanEncodable for GrappleDeviceInfo {
 /* FIRMWARE */
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleFirmware {
   UpdateRequest { serial: u32 },
   UpdateReady { serial: u32 },
@@ -133,6 +136,7 @@ impl FrcCanEncodable for GrappleFirmware {
 
 /* LASERCAN */
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleLaserCan {
   Status { device_id: u8, status: u8, distance_mm: u16, ambient: u16 },
   SetRange { device_id: u8, long: bool },
@@ -200,6 +204,7 @@ impl FrcCanEncodable for GrappleLaserCan {
 /* GRAPPLE */
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Grapple {
   DeviceInfo(GrappleDeviceInfo),
   Firmware(GrappleFirmware),
