@@ -80,7 +80,7 @@ impl FrcCanEncodable for GrappleDeviceInfo {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleFirmware {
   UpdateRequest { serial: u32 },
-  UpdateReady { serial: u32 },
+  UpdateReady { serial: u32, model_id: GrappleModelId },
   UpdatePart { serial: u32, data: [u8; 4], len: u8 },
   UpdatePartAck { serial: u32 },
   UpdateDone { serial: u32 }
@@ -91,7 +91,7 @@ impl FrcCanDecodable for GrappleFirmware {
     if data.id.manufacturer != GRAPPLE_MANUFACTURER || data.id.device_type != DEVICE_FIRMWARE_UPDATE || data.id.api_class != FIRMWARE_UPDATE_CLASS || data.id.device_id != DEVICE_ID_BROADCAST { return None; }
     match data.id.api_index {
       0x00 if data.len == 4 => Some(Self::UpdateRequest { serial: read_u32(&data.data) }),
-      0x01 if data.len == 4 => Some(Self::UpdateReady { serial: read_u32(&data.data) }),
+      0x01 if data.len == 4 => Some(Self::UpdateReady { serial: read_u32(&data.data), model_id: GrappleModelId::from_repr(data.data[4]).unwrap() }),
       0x02 => Some(Self::UpdatePart { serial: read_u32(&data.data), data: [data.data[4], data.data[5], data.data[6], data.data[7]], len: data.len - 4 }),
       0x03 if data.len == 4 => Some(Self::UpdatePartAck { serial: read_u32(&data.data) }),
       0x04 if data.len == 4 => Some(Self::UpdateDone { serial: read_u32(&data.data) }),
@@ -114,9 +114,10 @@ impl FrcCanEncodable for GrappleFirmware {
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         crate::FrcCanData { id, data, len: 4 }
       },
-      GrappleFirmware::UpdateReady { serial } => {
+      GrappleFirmware::UpdateReady { serial, model_id } => {
         id.api_index = 0x01;
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
+        data[4] = *model_id as u8;
         crate::FrcCanData { id, data, len: 4 }
       },
       GrappleFirmware::UpdatePart { serial, data: fw_data, len } => {
@@ -255,7 +256,7 @@ mod test {
   #[test]
   fn test_firmware() {
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateRequest { serial: 0xDEADBEEF }));
-    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateReady { serial: 0xDEADBEEF }));
+    assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateReady { serial: 0xDEADBEEF, model_id: super::GrappleModelId::SpiderCan }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePart { serial: 0xDEADBEEF, data: [0, 1, 2, 0], len: 3 }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdatePartAck { serial: 0xDEADBEEF }));
     assert_encode_decode(Grapple::Firmware(super::GrappleFirmware::UpdateDone { serial: 0xDEADBEEF }));
