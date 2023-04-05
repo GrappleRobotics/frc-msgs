@@ -18,7 +18,8 @@ fn read_u16(data: &[u8]) -> u16 {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(u8)]
 pub enum GrappleModelId {
-  LaserCan = 0
+  LaserCan = 0,
+  SpiderCan = 1
 }
 
 #[derive(Debug, Clone, PartialEq)]
