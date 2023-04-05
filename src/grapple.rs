@@ -28,7 +28,7 @@ pub enum GrappleDeviceInfo {
   EnumerateRequest,
   EnumerateResponse { device_id: u8, model_id: GrappleModelId, firmware_version: [u8; 3], serial: u32 },
   SetId { device_id: u8, serial: u32 },
-  Blink { serial: u32, blink: bool }
+  Blink { serial: u32 }
 }
 
 impl FrcCanDecodable for GrappleDeviceInfo {
@@ -38,7 +38,7 @@ impl FrcCanDecodable for GrappleDeviceInfo {
       (0x00, DEVICE_ID_BROADCAST) => Some(GrappleDeviceInfo::EnumerateRequest),
       (0x00, device_id) if data.len == 8 => Some(GrappleDeviceInfo::EnumerateResponse { device_id, model_id: GrappleModelId::from_repr(data.data[0])?, firmware_version: [data.data[1], data.data[2], data.data[3]], serial: read_u32(&data.data[4..]) }),
       (0x01, device_id) if data.len == 4 => Some(GrappleDeviceInfo::SetId { device_id, serial: read_u32(&data.data) }),
-      (0x02, DEVICE_ID_BROADCAST) if data.len == 4 => Some(GrappleDeviceInfo::Blink { serial: read_u32(&data.data), blink: data.data[4] != 0 }),
+      (0x02, DEVICE_ID_BROADCAST) if data.len == 4 => Some(GrappleDeviceInfo::Blink { serial: read_u32(&data.data) }),
       _ => None
     }
   }
@@ -72,11 +72,10 @@ impl FrcCanEncodable for GrappleDeviceInfo {
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
         crate::FrcCanData { id, data, len: 4 }
       },
-      GrappleDeviceInfo::Blink { serial, blink } => {
+      GrappleDeviceInfo::Blink { serial } => {
         id.api_index = 0x02;
         id.device_id = DEVICE_ID_BROADCAST;
         data[0..=3].copy_from_slice(serial.to_le_bytes().as_slice());
-        data[4] = *blink as u8;
         crate::FrcCanData { id, data, len: 4 }
       }
     }
@@ -260,7 +259,7 @@ mod test {
     assert_encode_decode(Grapple::DeviceInfo(super::GrappleDeviceInfo::EnumerateRequest));
     assert_encode_decode(Grapple::DeviceInfo(super::GrappleDeviceInfo::EnumerateResponse { device_id: 0x02, model_id: super::GrappleModelId::LaserCan, firmware_version: [1, 2, 0], serial: 0xDEADBEEF }));
     assert_encode_decode(Grapple::DeviceInfo(super::GrappleDeviceInfo::SetId { device_id: 0x02, serial: 0xDEADBEEF }));
-    assert_encode_decode(Grapple::DeviceInfo(super::GrappleDeviceInfo::Blink { serial: 0xDEADBEEF, blink: true }));
+    assert_encode_decode(Grapple::DeviceInfo(super::GrappleDeviceInfo::Blink { serial: 0xDEADBEEF }));
   }
 
   #[test]
