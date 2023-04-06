@@ -1,4 +1,4 @@
-use crate::{FrcCanDecodable, DEVICE_BROADCAST, DEVICE_ID_BROADCAST, FrcCanEncodable, DEVICE_FIRMWARE_UPDATE, DEVICE_ULTRASONIC};
+use crate::{FrcCanDecodable, DEVICE_BROADCAST, DEVICE_ID_BROADCAST, FrcCanEncodable, DEVICE_FIRMWARE_UPDATE, DEVICE_ULTRASONIC, DEVICE_IO_BREAKOUT};
 
 pub const GRAPPLE_MANUFACTURER: u8 = 0x06;
 pub const DEVICE_INFO_CLASS: u8 = 0x00;
@@ -215,6 +215,101 @@ impl FrcCanEncodable for GrappleLaserCan {
   }
 }
 
+/* SPIDERCAN */
+#[derive(Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(u8)]
+pub enum SpiderCanPinMode {
+  DigitalIn = 0x10,
+  DigitalOut = 0x20,
+  Analog = 0x30
+}
+
+impl From<u8> for SpiderCanPinMode {
+  fn from(value: u8) -> Self {
+    match value {
+      0x10 => SpiderCanPinMode::DigitalIn,
+      0x20 => SpiderCanPinMode::DigitalOut,
+      _ => SpiderCanPinMode::Analog
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum GrappleSpiderCan {
+  StatusDigital { device_id: u8, pin_status: [bool; 8] },
+  StatusAnalog { device_id: u8, frame_number: u8, pin_status: [u16; 4] },
+  ConfigurePin { device_id: u8, pin_id: u8, mode: SpiderCanPinMode },
+}
+
+impl FrcCanDecodable for GrappleSpiderCan {
+  fn decode(data: &crate::FrcCanData) -> Option<Self> {
+    if data.id.manufacturer != GRAPPLE_MANUFACTURER || data.id.device_type != DEVICE_IO_BREAKOUT { return None; }
+    match (data.id.api_class, data.id.api_index) {
+      (0x20, 0x00) if data.len == 1 => Some(GrappleSpiderCan::StatusDigital {
+        device_id: data.id.device_id,
+        pin_status: [data.data[0] & 0b1 != 0, data.data[0] & 0b10 != 0, data.data[0] & 0b100 != 0, data.data[0] & 0b1000 != 0,
+                     data.data[0] & 0b1_0000 != 0, data.data[0] & 0b10_0000 != 0, data.data[0] & 0b100_0000 != 0, data.data[0] & 0b1000_0000 != 0]
+      }),
+      (0x21, frame_num) if data.len == 8 => Some(GrappleSpiderCan::StatusAnalog {
+        device_id: data.id.device_id,
+        frame_number: frame_num,
+        pin_status: [ read_u16(&data.data[0..=1]), read_u16(&data.data[2..=3]),
+                      read_u16(&data.data[4..=5]), read_u16(&data.data[6..=7]) ]
+      }),
+      (0x22, 0x00) if data.len == 2 => Some(GrappleSpiderCan::ConfigurePin {
+        device_id: data.id.device_id,
+        pin_id: data.data[0],
+        mode: data.data[1].into()
+      }),
+      _ => None
+    }
+  }
+}
+
+impl FrcCanEncodable for GrappleSpiderCan {
+  fn encode(&self) -> crate::FrcCanData {
+    let mut id = crate::FrcCanId {
+      device_type: DEVICE_IO_BREAKOUT, manufacturer: GRAPPLE_MANUFACTURER,
+      api_class: 0x00, api_index: 0x00, device_id: 0x00
+    };
+    let mut data = [0u8; 8];
+
+    match self {
+      GrappleSpiderCan::StatusDigital { device_id, pin_status } => {
+        id.device_id = *device_id;
+        id.api_class = 0x20;
+        id.api_index = 0x00;
+        for i in 0..pin_status.len() {
+          if pin_status[i] {
+            data[0] |= 1 << i;
+          }
+        }
+        crate::FrcCanData { id, data, len: 1 }
+      },
+      GrappleSpiderCan::StatusAnalog { device_id, frame_number, pin_status } => {
+        id.device_id = *device_id;
+        id.api_class = 0x21;
+        id.api_index = *frame_number;
+        data[0..=1].clone_from_slice(&pin_status[0].to_le_bytes());
+        data[2..=3].clone_from_slice(&pin_status[1].to_le_bytes());
+        data[4..=5].clone_from_slice(&pin_status[2].to_le_bytes());
+        data[6..=7].clone_from_slice(&pin_status[3].to_le_bytes());
+        crate::FrcCanData { id, data, len: 8 }
+      },
+      GrappleSpiderCan::ConfigurePin { device_id, pin_id, mode } => {
+        id.device_id = *device_id;
+        id.api_class = 0x22;
+        id.api_index = 0x00;
+        data[0] = *pin_id;
+        data[1] = *mode as u8;
+        crate::FrcCanData { id, data, len: 2 }
+      },
+    }
+  }
+}
+
 /* GRAPPLE */
 
 #[derive(Debug, Clone, PartialEq)]
@@ -222,7 +317,8 @@ impl FrcCanEncodable for GrappleLaserCan {
 pub enum Grapple {
   DeviceInfo(GrappleDeviceInfo),
   Firmware(GrappleFirmware),
-  LaserCan(GrappleLaserCan)
+  LaserCan(GrappleLaserCan),
+  SpiderCan(GrappleSpiderCan),
 }
 
 impl FrcCanDecodable for Grapple {
@@ -230,6 +326,7 @@ impl FrcCanDecodable for Grapple {
     GrappleDeviceInfo::decode(data).map(|x| Grapple::DeviceInfo(x))
     .or(GrappleFirmware::decode(data).map(|x| Grapple::Firmware(x)))
     .or(GrappleLaserCan::decode(data).map(|x| Grapple::LaserCan(x)))
+    .or(GrappleSpiderCan::decode(data).map(|x| Grapple::SpiderCan(x)))
   }
 }
 
@@ -238,7 +335,8 @@ impl FrcCanEncodable for Grapple {
     match self {
       Grapple::DeviceInfo(di) => di.encode(),
       Grapple::Firmware(fw) => fw.encode(),
-      Grapple::LaserCan(lc) => lc.encode()
+      Grapple::LaserCan(lc) => lc.encode(),
+      Grapple::SpiderCan(sc) => sc.encode(),
     }
   }
 }
@@ -277,5 +375,12 @@ mod test {
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRange { device_id: 0x02, long: true }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRoi { device_id: 0x02, width: 0x16, height: 0x19 }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetTimingBudget { device_id: 0x02, budget_ms: 100 }));
+  }
+
+  #[test]
+  fn test_spidercan() {
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigurePin { device_id: 0x01, pin_id: 0x10, mode: super::SpiderCanPinMode::Analog }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusAnalog { device_id: 0x02, frame_number: 0x01, pin_status: [100, 200, 300, 400] }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusDigital { device_id: 0x03, pin_status: [true, true, false, false, true, false, false, true] }))
   }
 }
