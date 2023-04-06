@@ -264,7 +264,7 @@ impl FrcCanDecodable for GrappleSpiderCan {
         pin_id: data.data[0],
         mode: data.data[1].into()
       }),
-      (0x30, 0x00) => Some(GrappleSpiderCan::SaveConfig { device_id: data.id.device_id })
+      (0x30, 0x00) => Some(GrappleSpiderCan::SaveConfig { device_id: data.id.device_id }),
       _ => None
     }
   }
