@@ -241,6 +241,7 @@ pub enum GrappleSpiderCan {
   StatusDigital { device_id: u8, pin_status: [bool; 8] },
   StatusAnalog { device_id: u8, frame_number: u8, pin_status: [u16; 4] },
   ConfigurePin { device_id: u8, pin_id: u8, mode: SpiderCanPinMode },
+  SaveConfig { device_id: u8 }
 }
 
 impl FrcCanDecodable for GrappleSpiderCan {
@@ -263,6 +264,7 @@ impl FrcCanDecodable for GrappleSpiderCan {
         pin_id: data.data[0],
         mode: data.data[1].into()
       }),
+      (0x30, 0x00) => Some(GrappleSpiderCan::SaveConfig { device_id: data.id.device_id })
       _ => None
     }
   }
@@ -306,6 +308,12 @@ impl FrcCanEncodable for GrappleSpiderCan {
         data[1] = *mode as u8;
         crate::FrcCanData { id, data, len: 2 }
       },
+      GrappleSpiderCan::SaveConfig { device_id } => {
+        id.device_id = *device_id;
+        id.api_class = 0x30;
+        id.api_index = 0x00;
+        crate::FrcCanData { id, data, len: 0 }
+      }
     }
   }
 }
