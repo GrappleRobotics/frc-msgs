@@ -155,7 +155,8 @@ pub enum GrappleLaserCan {
   Status { device_id: u8, status: u8, distance_mm: u16, ambient: u16, long: bool, budget_ms: u8 },
   SetRange { device_id: u8, long: bool },
   SetRoi { device_id: u8, width: u8, height: u8 },
-  SetTimingBudget { device_id: u8, budget_ms: u8 }
+  SetTimingBudget { device_id: u8, budget_ms: u8 },
+  SaveConfig { device_id: u8 }
 }
 
 impl FrcCanDecodable for GrappleLaserCan {
@@ -166,6 +167,7 @@ impl FrcCanDecodable for GrappleLaserCan {
       (0x21, 0x00) if data.len == 1 => Some(GrappleLaserCan::SetRange { device_id: data.id.device_id, long: data.data[0] != 0 }),
       (0x21, 0x01) if data.len == 2 => Some(GrappleLaserCan::SetRoi { device_id: data.id.device_id, width: data.data[0], height: data.data[1] }),
       (0x21, 0x02) if data.len == 1 => Some(GrappleLaserCan::SetTimingBudget { device_id: data.id.device_id, budget_ms: data.data[0] }),
+      (0x30, 0x00) => Some(GrappleLaserCan::SaveConfig { device_id: data.id.device_id }),
       _ => None
     }
   }
@@ -213,6 +215,12 @@ impl FrcCanEncodable for GrappleLaserCan {
         data[0] = *budget_ms;
         crate::FrcCanData { id, data, len: 1 }
       },
+      GrappleLaserCan::SaveConfig { device_id } => {
+        id.device_id = *device_id;
+        id.api_class = 0x30;
+        id.api_index = 0x00;
+        crate::FrcCanData { id, data, len: 0 }
+      }
     }
   }
 }
