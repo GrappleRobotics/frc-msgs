@@ -304,7 +304,7 @@ impl Into<u8> for SpiderCanPinMode {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleSpiderCan {
-  StatusDigital { device_id: u8, pin_status: [bool; 8] },
+  StatusDigital { device_id: u8, pin_status: [bool; 8], pin_modes: [SpiderCanPinMode; 8] },
   StatusAnalog { device_id: u8, frame_number: u8, pin_status: [u16; 4] },
   ConfigurePin { device_id: u8, pin_id: u8, mode: SpiderCanPinMode },
   SaveConfig { device_id: u8 }
@@ -314,10 +314,14 @@ impl FrcCanDecodable for GrappleSpiderCan {
   fn decode(data: &crate::FrcCanData) -> Option<Self> {
     if data.id.manufacturer != GRAPPLE_MANUFACTURER || data.id.device_type != DEVICE_IO_BREAKOUT { return None; }
     match (data.id.api_class, data.id.api_index) {
-      (0x20, 0x00) if data.len == 1 => Some(GrappleSpiderCan::StatusDigital {
+      (0x20, 0x00) if data.len == 5 => Some(GrappleSpiderCan::StatusDigital {
         device_id: data.id.device_id,
         pin_status: [data.data[0] & 0b1 != 0, data.data[0] & 0b10 != 0, data.data[0] & 0b100 != 0, data.data[0] & 0b1000 != 0,
-                     data.data[0] & 0b1_0000 != 0, data.data[0] & 0b10_0000 != 0, data.data[0] & 0b100_0000 != 0, data.data[0] & 0b1000_0000 != 0]
+                     data.data[0] & 0b1_0000 != 0, data.data[0] & 0b10_0000 != 0, data.data[0] & 0b100_0000 != 0, data.data[0] & 0b1000_0000 != 0],
+        pin_modes:  [(data.data[1] & 0b1111).into(), ((data.data[1] >> 4) & 0b1111).into(),
+                     (data.data[2] & 0b1111).into(), ((data.data[2] >> 4) & 0b1111).into(),
+                     (data.data[3] & 0b1111).into(), ((data.data[3] >> 4) & 0b1111).into(),
+                     (data.data[4] & 0b1111).into(), ((data.data[4] >> 4) & 0b1111).into()]
       }),
       (0x21, frame_num) if data.len == 8 => Some(GrappleSpiderCan::StatusAnalog {
         device_id: data.id.device_id,
@@ -345,7 +349,7 @@ impl FrcCanEncodable for GrappleSpiderCan {
     let mut data = [0u8; 8];
 
     match self {
-      GrappleSpiderCan::StatusDigital { device_id, pin_status } => {
+      GrappleSpiderCan::StatusDigital { device_id, pin_status, pin_modes } => {
         id.device_id = *device_id;
         id.api_class = 0x20;
         id.api_index = 0x00;
@@ -354,7 +358,11 @@ impl FrcCanEncodable for GrappleSpiderCan {
             data[0] |= 1 << i;
           }
         }
-        crate::FrcCanData { id, data, len: 1 }
+        data[1] = Into::<u8>::into(pin_modes[0]) | (Into::<u8>::into(pin_modes[1]) << 4);
+        data[2] = Into::<u8>::into(pin_modes[2]) | (Into::<u8>::into(pin_modes[3]) << 4);
+        data[3] = Into::<u8>::into(pin_modes[4]) | (Into::<u8>::into(pin_modes[5]) << 4);
+        data[4] = Into::<u8>::into(pin_modes[6]) | (Into::<u8>::into(pin_modes[7]) << 4);
+        crate::FrcCanData { id, data, len: 5 }
       },
       GrappleSpiderCan::StatusAnalog { device_id, frame_number, pin_status } => {
         id.device_id = *device_id;
@@ -420,7 +428,7 @@ impl FrcCanEncodable for Grapple {
 #[cfg(test)]
 mod test {
   use crate::{FrcCanDecodable, FrcCanEncodable};
-  use super::Grapple;
+  use super::{Grapple, SpiderCanPinMode, SpiderCanPull, SpiderCanOutputMode};
 
   fn assert_encode_decode(data: Grapple) {
     assert_eq!(Some(data.clone()), Grapple::decode(&data.encode()));
@@ -455,6 +463,13 @@ mod test {
   fn test_spidercan() {
     assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigurePin { device_id: 0x01, pin_id: 0x10, mode: super::SpiderCanPinMode::DigitalOut(super::SpiderCanOutputMode::OpenDrain) }));
     assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusAnalog { device_id: 0x02, frame_number: 0x01, pin_status: [100, 200, 300, 400] }));
-    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusDigital { device_id: 0x03, pin_status: [true, true, false, false, true, false, false, true] }))
+    assert_encode_decode(Grapple::SpiderCan(
+      super::GrappleSpiderCan::StatusDigital {
+        device_id: 0x03,
+        pin_status: [true, true, false, false, true, false, false, true],
+        pin_modes: [ SpiderCanPinMode::Analog, SpiderCanPinMode::DigitalIn(SpiderCanPull::NoPull), SpiderCanPinMode::DigitalIn(SpiderCanPull::PullDown), SpiderCanPinMode::DigitalIn(SpiderCanPull::PullUp), 
+                     SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::OpenDrain), SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::PushPull), SpiderCanPinMode::Analog, SpiderCanPinMode::Analog ] 
+      }
+    ));
   }
 }
