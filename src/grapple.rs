@@ -151,8 +151,17 @@ impl FrcCanEncodable for GrappleFirmware {
 /* LASERCAN */
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct GrappleLaserCanRoi {
+  pub x: u8,
+  pub y: u8,
+  pub w: u8,
+  pub h: u8
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleLaserCan {
-  Status { device_id: u8, status: u8, distance_mm: u16, ambient: u16, long: bool, budget_ms: u8 },
+  Status { device_id: u8, status: u8, distance_mm: u16, ambient: u16, long: bool, budget_ms: u8, roi: GrappleLaserCanRoi },
   SetRange { device_id: u8, long: bool },
   SetRoi { device_id: u8, width: u8, height: u8 },
   SetTimingBudget { device_id: u8, budget_ms: u8 },
@@ -163,7 +172,20 @@ impl FrcCanDecodable for GrappleLaserCan {
   fn decode(data: &crate::FrcCanData) -> Option<Self> {
     if data.id.manufacturer != GRAPPLE_MANUFACTURER || data.id.device_type != DEVICE_ULTRASONIC { return None; }
     match (data.id.api_class, data.id.api_index) {
-      (0x20, 0x00) if data.len == 7 => Some(GrappleLaserCan::Status { device_id: data.id.device_id, status: data.data[0], distance_mm: read_u16(&data.data[1..]), ambient: read_u16(&data.data[3..]), long: data.data[5] != 0, budget_ms: data.data[6] }),
+      (0x20, 0x00) if data.len == 8 => Some(GrappleLaserCan::Status {
+        device_id: data.id.device_id,
+        status: data.data[0],
+        distance_mm: read_u16(&data.data[1..]),
+        ambient: read_u16(&data.data[3..]),
+        long: (data.data[5] & 0b1000_0000) != 0,
+        budget_ms: data.data[5] & 0b0111_1111,
+        roi: GrappleLaserCanRoi {
+          x: (data.data[6] >> 4) & 0b1111,
+          y: (data.data[6]) & 0b1111,
+          w: ((data.data[7] >> 4) & 0b1111) + 4,
+          h: ((data.data[7]) & 0b1111) + 4
+        }
+      }),
       (0x21, 0x00) if data.len == 1 => Some(GrappleLaserCan::SetRange { device_id: data.id.device_id, long: data.data[0] != 0 }),
       (0x21, 0x01) if data.len == 2 => Some(GrappleLaserCan::SetRoi { device_id: data.id.device_id, width: data.data[0], height: data.data[1] }),
       (0x21, 0x02) if data.len == 1 => Some(GrappleLaserCan::SetTimingBudget { device_id: data.id.device_id, budget_ms: data.data[0] }),
@@ -182,16 +204,17 @@ impl FrcCanEncodable for GrappleLaserCan {
     let mut data = [0u8; 8];
 
     match self {
-      GrappleLaserCan::Status { device_id, status, distance_mm, ambient, long, budget_ms } => {
+      GrappleLaserCan::Status { device_id, status, distance_mm, ambient, long, budget_ms, roi } => {
         id.device_id = *device_id;
         id.api_class = 0x20;
         id.api_index = 0x00;
         data[0] = *status;
         data[1..=2].copy_from_slice(distance_mm.to_le_bytes().as_slice());
         data[3..=4].copy_from_slice(ambient.to_le_bytes().as_slice());
-        data[5] = *long as u8;
-        data[6] = *budget_ms;
-        crate::FrcCanData { id, data, len: 7 }
+        data[5] = (*long as u8) << 7 | (*budget_ms & 0b0111_1111);
+        data[6] = ((roi.x & 0b1111) << 4) | (roi.y & 0b1111);
+        data[7] = (((roi.w - 4) & 0b1111) << 4) | ((roi.h - 4) & 0b1111);
+        crate::FrcCanData { id, data, len: 8 }
       },
       GrappleLaserCan::SetRange { device_id, long } => {
         id.device_id = *device_id;
@@ -389,7 +412,7 @@ mod test {
 
   #[test]
   fn test_lasercan() {
-    assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::Status { device_id: 0x01, status: 0x02, distance_mm: 0x1234, ambient: 0x4567, long: true, budget_ms: 34 }));
+    assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::Status { device_id: 0x01, status: 0x02, distance_mm: 0x1234, ambient: 0x4567, long: true, budget_ms: 34, roi: super::GrappleLaserCanRoi { x: 8, y: 7, w: 16, h: 4 } }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRange { device_id: 0x02, long: true }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRoi { device_id: 0x02, width: 0x16, height: 0x19 }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetTimingBudget { device_id: 0x02, budget_ms: 100 }));
