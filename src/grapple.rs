@@ -253,19 +253,50 @@ impl FrcCanEncodable for GrappleLaserCan {
 /* SPIDERCAN */
 #[derive(Clone, Debug, PartialEq, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[repr(u8)]
+pub enum SpiderCanPull {
+  NoPull,
+  PullUp,
+  PullDown,
+}
+
+#[derive(Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum SpiderCanOutputMode {
+  PushPull,
+  OpenDrain
+}
+
+#[derive(Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum SpiderCanPinMode {
-  DigitalIn = 0x10,
-  DigitalOut = 0x20,
-  Analog = 0x30
+  DigitalIn(SpiderCanPull),
+  DigitalOut(SpiderCanOutputMode),
+  Analog
 }
 
 impl From<u8> for SpiderCanPinMode {
   fn from(value: u8) -> Self {
     match value {
-      0x10 => SpiderCanPinMode::DigitalIn,
-      0x20 => SpiderCanPinMode::DigitalOut,
-      _ => SpiderCanPinMode::Analog
+      0b000 => SpiderCanPinMode::DigitalIn(SpiderCanPull::NoPull),
+      0b001 => SpiderCanPinMode::DigitalIn(SpiderCanPull::PullUp),
+      0b010 => SpiderCanPinMode::DigitalIn(SpiderCanPull::PullDown),
+      0b100 => SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::PushPull),
+      0b101 => SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::OpenDrain),
+      0b011 => SpiderCanPinMode::Analog,
+      _ => SpiderCanPinMode::DigitalIn(SpiderCanPull::PullUp)
+    }
+  }
+}
+
+impl Into<u8> for SpiderCanPinMode {
+  fn into(self) -> u8 {
+    match self {
+      SpiderCanPinMode::DigitalIn(SpiderCanPull::NoPull) => 0b000,
+      SpiderCanPinMode::DigitalIn(SpiderCanPull::PullUp) => 0b001,
+      SpiderCanPinMode::DigitalIn(SpiderCanPull::PullDown) => 0b010,
+      SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::PushPull) => 0b100,
+      SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::OpenDrain) => 0b101,
+      SpiderCanPinMode::Analog => 0b011,
     }
   }
 }
@@ -340,7 +371,7 @@ impl FrcCanEncodable for GrappleSpiderCan {
         id.api_class = 0x22;
         id.api_index = 0x00;
         data[0] = *pin_id;
-        data[1] = *mode as u8;
+        data[1] = (*mode).into();
         crate::FrcCanData { id, data, len: 2 }
       },
       GrappleSpiderCan::SaveConfig { device_id } => {
@@ -422,7 +453,7 @@ mod test {
 
   #[test]
   fn test_spidercan() {
-    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigurePin { device_id: 0x01, pin_id: 0x10, mode: super::SpiderCanPinMode::Analog }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigurePin { device_id: 0x01, pin_id: 0x10, mode: super::SpiderCanPinMode::DigitalOut(super::SpiderCanOutputMode::OpenDrain) }));
     assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusAnalog { device_id: 0x02, frame_number: 0x01, pin_status: [100, 200, 300, 400] }));
     assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::StatusDigital { device_id: 0x03, pin_status: [true, true, false, false, true, false, false, true] }))
   }
