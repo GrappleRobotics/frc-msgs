@@ -163,7 +163,7 @@ pub struct GrappleLaserCanRoi {
 pub enum GrappleLaserCan {
   Status { device_id: u8, status: u8, distance_mm: u16, ambient: u16, long: bool, budget_ms: u8, roi: GrappleLaserCanRoi },
   SetRange { device_id: u8, long: bool },
-  SetRoi { device_id: u8, width: u8, height: u8 },
+  SetRoi { device_id: u8, roi: GrappleLaserCanRoi },
   SetTimingBudget { device_id: u8, budget_ms: u8 },
   SaveConfig { device_id: u8 }
 }
@@ -187,7 +187,7 @@ impl FrcCanDecodable for GrappleLaserCan {
         }
       }),
       (0x21, 0x00) if data.len == 1 => Some(GrappleLaserCan::SetRange { device_id: data.id.device_id, long: data.data[0] != 0 }),
-      (0x21, 0x01) if data.len == 2 => Some(GrappleLaserCan::SetRoi { device_id: data.id.device_id, width: data.data[0], height: data.data[1] }),
+      (0x21, 0x01) if data.len == 4 => Some(GrappleLaserCan::SetRoi { device_id: data.id.device_id, roi: GrappleLaserCanRoi { x: data.data[0], y: data.data[1], w: data.data[2], h: data.data[3] } }),
       (0x21, 0x02) if data.len == 1 => Some(GrappleLaserCan::SetTimingBudget { device_id: data.id.device_id, budget_ms: data.data[0] }),
       (0x30, 0x00) => Some(GrappleLaserCan::SaveConfig { device_id: data.id.device_id }),
       _ => None
@@ -223,13 +223,15 @@ impl FrcCanEncodable for GrappleLaserCan {
         data[0] = if *long { 1 } else { 0 };
         crate::FrcCanData { id, data, len: 1 }
       },
-      GrappleLaserCan::SetRoi { device_id, width, height } => {
+      GrappleLaserCan::SetRoi { device_id, roi } => {
         id.device_id = *device_id;
         id.api_class = 0x21;
         id.api_index = 0x01;
-        data[0] = *width;
-        data[1] = *height;
-        crate::FrcCanData { id, data, len: 2 }
+        data[0] = roi.x;
+        data[1] = roi.y;
+        data[2] = roi.w;
+        data[3] = roi.h;
+        crate::FrcCanData { id, data, len: 4 }
       },
       GrappleLaserCan::SetTimingBudget { device_id, budget_ms } => {
         id.device_id = *device_id;
@@ -414,7 +416,7 @@ mod test {
   fn test_lasercan() {
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::Status { device_id: 0x01, status: 0x02, distance_mm: 0x1234, ambient: 0x4567, long: true, budget_ms: 34, roi: super::GrappleLaserCanRoi { x: 8, y: 7, w: 16, h: 4 } }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRange { device_id: 0x02, long: true }));
-    assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRoi { device_id: 0x02, width: 0x16, height: 0x19 }));
+    assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetRoi { device_id: 0x02, roi: super::GrappleLaserCanRoi { x: 1, y: 2, w: 3, h: 4 } }));
     assert_encode_decode(Grapple::LaserCan(super::GrappleLaserCan::SetTimingBudget { device_id: 0x02, budget_ms: 100 }));
   }
 
