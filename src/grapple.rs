@@ -301,12 +301,37 @@ impl Into<u8> for SpiderCanPinMode {
   }
 }
 
+#[derive(Clone, Debug, PartialEq, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(u8)]
+pub enum SpiderCanSpiMode {
+  FirstPulseIdleLow = 1,
+  FirstPulseIdleHigh = 2,
+  SecondPulseIdleLow = 3,
+  SecondPulseIdleHigh = 4,
+}
+
+impl From<u8> for SpiderCanSpiMode {
+  fn from(value: u8) -> Self {
+    match value {
+      1 => Self::FirstPulseIdleLow,
+      2 => Self::FirstPulseIdleHigh,
+      3 => Self::SecondPulseIdleLow,
+      4 => Self::SecondPulseIdleHigh,
+      _ => Self::FirstPulseIdleLow
+    }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GrappleSpiderCan {
   StatusDigital { device_id: u8, pin_status: [bool; 8], pin_modes: [SpiderCanPinMode; 8] },
   StatusAnalog { device_id: u8, frame_number: u8, pin_status: [u16; 4] },
   ConfigurePin { device_id: u8, pin_id: u8, mode: SpiderCanPinMode },
+  ConfigureUart { device_id: u8, baud: Option<u32> },
+  ConfigureI2c { device_id: u8, speed_khz: Option<u32> },
+  ConfigureSpi { device_id: u8, mode: Option<SpiderCanSpiMode>, speed_hz: Option<u32> },
   SetPins { device_id: u8, set: [bool; 8], reset: [bool; 8] },
   SaveConfig { device_id: u8 }
 }
@@ -335,7 +360,32 @@ impl FrcCanDecodable for GrappleSpiderCan {
         pin_id: data.data[0],
         mode: data.data[1].into()
       }),
-      (0x22, 0x01) if data.len == 2 => Some(GrappleSpiderCan::SetPins {
+      (0x22, 0x01) if data.len == 4 => Some(GrappleSpiderCan::ConfigureUart {
+        device_id: data.id.device_id,
+        baud: match u32::from_le_bytes([data.data[0], data.data[1], data.data[2], data.data[3]]) {
+          0 => None,
+          x => Some(x)
+        }
+      }),
+      (0x22, 0x02) if data.len == 4 => Some(GrappleSpiderCan::ConfigureI2c {
+        device_id: data.id.device_id,
+        speed_khz: match u32::from_le_bytes([data.data[0], data.data[1], data.data[2], data.data[3]]) {
+          0 => None,
+          x => Some(x)
+        }
+      }),
+      (0x22, 0x03) if data.len == 5 => Some(GrappleSpiderCan::ConfigureSpi {
+        device_id: data.id.device_id,
+        mode: match data.data[0] {
+          0 => None,
+          x => Some(x.into())
+        },
+        speed_hz: match u32::from_le_bytes([data.data[1], data.data[2], data.data[3], data.data[4]]) {
+          0 => None,
+          x => Some(x)
+        }
+      }),
+      (0x23, 0x00) if data.len == 2 => Some(GrappleSpiderCan::SetPins {
         device_id: data.id.device_id,
         set: [data.data[0] & 0b1 != 0, data.data[0] & 0b10 != 0, data.data[0] & 0b100 != 0, data.data[0] & 0b1000 != 0,
               data.data[0] & 0b1_0000 != 0, data.data[0] & 0b10_0000 != 0, data.data[0] & 0b100_0000 != 0, data.data[0] & 0b1000_0000 != 0],
@@ -390,10 +440,35 @@ impl FrcCanEncodable for GrappleSpiderCan {
         data[1] = (*mode).into();
         crate::FrcCanData { id, data, len: 2 }
       },
-      GrappleSpiderCan::SetPins { device_id, set, reset } => {
+      GrappleSpiderCan::ConfigureUart { device_id, baud } => {
         id.device_id = *device_id;
         id.api_class = 0x22;
         id.api_index = 0x01;
+        data[0..=3].copy_from_slice(&(*baud).unwrap_or(0).to_le_bytes());
+        crate::FrcCanData { id, data, len: 4 }
+      },
+      GrappleSpiderCan::ConfigureI2c { device_id, speed_khz } => {
+        id.device_id = *device_id;
+        id.api_class = 0x22;
+        id.api_index = 0x02;
+        data[0..=3].copy_from_slice(&(*speed_khz).unwrap_or(0).to_le_bytes());
+        crate::FrcCanData { id, data, len: 4 }
+      },
+      GrappleSpiderCan::ConfigureSpi { device_id, mode, speed_hz } => {
+        id.device_id = *device_id;
+        id.api_class = 0x22;
+        id.api_index = 0x03;
+        data[0] = match *mode {
+          Some(x) => x as u8,
+          None => 0,
+        };
+        data[1..=4].copy_from_slice(&(*speed_hz).unwrap_or(0).to_le_bytes());
+        crate::FrcCanData { id, data, len: 5 }
+      },
+      GrappleSpiderCan::SetPins { device_id, set, reset } => {
+        id.device_id = *device_id;
+        id.api_class = 0x23;
+        id.api_index = 0x00;
         for i in 0..set.len() {
           if set[i] {
             data[0] |= 1 << i;
@@ -493,6 +568,9 @@ mod test {
                      SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::OpenDrain), SpiderCanPinMode::DigitalOut(SpiderCanOutputMode::PushPull), SpiderCanPinMode::Analog, SpiderCanPinMode::Analog ] 
       }
     ));
-    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::SetPins { device_id: 0x03, set: [true, false, false, true, true, false, true, true], reset: [false, true, false, false, false, true, false, false] }))
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::SetPins { device_id: 0x03, set: [true, false, false, true, true, false, true, true], reset: [false, true, false, false, false, true, false, false] }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigureUart { device_id: 0x04, baud: Some(115200) }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigureI2c { device_id: 0x05, speed_khz: None }));
+    assert_encode_decode(Grapple::SpiderCan(super::GrappleSpiderCan::ConfigureSpi { device_id: 0x06, mode: Some(super::SpiderCanSpiMode::FirstPulseIdleHigh), speed_hz: Some(800000) }));
   }
 }
