@@ -6,10 +6,12 @@ edition = "2021"
 [dependencies]
 bxcan = "0.6.0"
 deku = { version = "0.16.0", default-features = false, features = ["alloc"] }
+schemars = { version = "0.8.12", optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 strum_macros = "0.24.3"
 
 [features]
 std = []
 serde = ["dep:serde"]
-default = ["std", "serde"]
+schema = ["dep:schemars"]
+default = ["std", "serde", "schema"]

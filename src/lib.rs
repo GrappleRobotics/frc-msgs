@@ -13,6 +13,7 @@ pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Message {
   #[deku(update = "self.msg.device_type()")]
   pub device_type: u8,
@@ -48,6 +49,7 @@ impl Message {
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, manufacturer: u8, api_class: u8, api_index: u8", id = "manufacturer")]
 pub enum ManufacturerMessage {
   #[deku(id = "6")]
