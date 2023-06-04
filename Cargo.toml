@@ -1,10 +1,11 @@
 [package]
-name = "frc-can"
+name = "frc-msgs"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 bxcan = "0.6.0"
+deku = { version = "0.16.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 strum_macros = "0.24.3"
 
