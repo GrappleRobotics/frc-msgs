@@ -26,7 +26,7 @@ pub enum GrappleDeviceInfo {
     firmware_version: [u8; 3],
     serial: u32,
 
-    #[deku(assert = "*name_len <= 16")]
+    #[deku(assert = "*name_len <= 16", update = "name.len()")]
     name_len: u8,
     #[deku(count = "name_len")]
     name: Vec<u8>
@@ -44,7 +44,10 @@ pub enum GrappleDeviceInfo {
     name_len: u8,
     #[deku(count = "name_len")]
     name: Vec<u8>
-  }
+  },
+
+  #[deku(id = "4")]
+  CommitConfig
 }
 
 #[cfg(test)]

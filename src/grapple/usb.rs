@@ -6,8 +6,14 @@ use alloc::format;
 use crate::Message;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
-#[deku(magic = b"GUSB")]
-pub struct GrappleUSBMessage(pub Message);
+#[deku(magic = b"GUSB", type = "u8")]
+pub enum GrappleUSBMessage {
+  #[deku(id = "0")]
+  Encapsulated(Message),
+
+  #[deku(id = "1")]
+  DeviceCheck   // Used to check that the device connected is indeed a Grapple device
+}
 
 #[cfg(test)]
 mod test {
@@ -19,7 +25,7 @@ mod test {
 
   #[test]
   fn test() {
-    let mut msg = GrappleUSBMessage(Message::new(
+    let mut msg = GrappleUSBMessage::Encapsulated(Message::new(
       0x3F,
       crate::ManufacturerMessage::Grapple(
         GrappleDeviceMessage::Broadcast(GrappleBroadcastMessage::DeviceInfo(GrappleDeviceInfo::EnumerateRequest))
