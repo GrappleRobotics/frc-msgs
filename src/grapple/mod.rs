@@ -2,10 +2,11 @@ extern crate alloc;
 use deku::prelude::*;
 use alloc::format;
 
-use self::device_info::GrappleDeviceInfo;
+use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage};
 
 pub mod device_info;
 pub mod usb;
+pub mod spiderlan;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -24,8 +25,12 @@ pub enum GrappleDeviceMessage {
   #[deku(id = "6")]
   DistanceSensor,
 
+  // TODO: Submit a request to FIRST for this once we go public. This ID may change.
   #[deku(id = "12")]
-  EthernetSwitch,     // TODO: Submit a request to FIRST for this once we go public. This ID may change.
+  EthernetSwitch(
+    #[deku(ctx = "api_class, api_index")]
+    SpiderLanMessage
+  ),
 }
 
 impl GrappleDeviceMessage {
@@ -38,7 +43,7 @@ impl GrappleDeviceMessage {
       GrappleDeviceMessage::Broadcast(bcast) => bcast.api(),
       GrappleDeviceMessage::FirmwareUpdate => unreachable!(),
       GrappleDeviceMessage::DistanceSensor => unreachable!(),
-      GrappleDeviceMessage::EthernetSwitch => unreachable!(),
+      GrappleDeviceMessage::EthernetSwitch(switch) => switch.api(),
     }
   }
 }

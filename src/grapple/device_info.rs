@@ -47,7 +47,16 @@ pub enum GrappleDeviceInfo {
   },
 
   #[deku(id = "4")]
-  CommitConfig
+  CommitConfig {
+    serial: u32
+  },
+
+  #[deku(id = "5")]
+  SetId {
+    serial: u32,
+    #[deku(assert = "*new_id <= (0x3F - 1)")]
+    new_id: u8
+  }
 }
 
 #[cfg(test)]
