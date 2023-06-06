@@ -72,3 +72,14 @@ impl ManufacturerMessage {
     }
   }
 }
+
+pub trait DekuValidate {
+  fn validate(&self) -> Result<(), DekuError>;
+}
+
+impl<T> DekuValidate for T where T: DekuContainerWrite {
+  fn validate(&self) -> Result<(), DekuError> {
+    self.to_bytes()?;
+    Ok(())
+  }
+}
