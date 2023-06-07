@@ -45,6 +45,11 @@ pub enum SpiderLanMessage {
   Status(
     #[deku(ctx = "api_index")]
     SpiderLanStatusMessage
+  ),
+  #[deku(id = "2")]
+  Command(
+    #[deku(ctx = "api_index")]
+    SpiderLanCommandMessage
   )
 }
 
@@ -54,14 +59,14 @@ impl SpiderLanMessage {
       self.deku_id().unwrap(),
       match self {
         SpiderLanMessage::Config(cfg) => cfg.deku_id().unwrap(),
-        SpiderLanMessage::Status(sts) => sts.deku_id().unwrap()
+        SpiderLanMessage::Status(sts) => sts.deku_id().unwrap(),
+        SpiderLanMessage::Command(cmd) => cmd.deku_id().unwrap()
       }
     )
   }
 }
 
 /* CONFIGURATION */
-
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -74,7 +79,16 @@ pub enum SpiderLanConfigMessage {
   PortsConfiguration(PortsConfiguration),
 
   #[deku(id = "2")]
-  SetPortsConfiguration(PortsConfiguration)
+  SetPortsConfiguration(PortsConfiguration),
+
+  #[deku(id = "3")]
+  SetPinConfiguration(IOPinConfigurationMessage),
+
+  #[deku(id = "4")]
+  RequestPinConfigurations,
+
+  #[deku(id = "5")]
+  PinConfigurations([IOPinConfiguration; 8])
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -103,6 +117,51 @@ impl Default for PortVlanConfiguration {
   }
 }
 
+#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct IOPinConfigurationMessage {
+  #[deku(bits = 4, assert = "*pin < 8")]
+  pub pin: u8,
+  pub config: IOPinConfiguration
+}
+
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[deku(type="u8", bits=2)]
+pub enum DigitalInMode {
+  #[deku(id = "0")]
+  NoPull,
+  #[deku(id = "1")]
+  PullUp,
+  #[deku(id = "2")]
+  PullDown
+}
+
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[deku(type="u8", bits=1)]
+pub enum DigitalOutMode {
+  #[deku(id = "0")]
+  PushPull,
+  #[deku(id = "1")]
+  OpenDrain,
+}
+
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[deku(type="u8", bits=2)]
+pub enum IOPinConfiguration {
+  #[deku(id = "0")]
+  Analog,
+  #[deku(id = "1")]
+  DigitalIn(DigitalInMode),
+  #[deku(id = "2")]
+  DigitalOut(DigitalOutMode)
+}
 
 /* STATUS */
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -112,6 +171,9 @@ impl Default for PortVlanConfiguration {
 pub enum SpiderLanStatusMessage {
   #[deku(id = "0")]
   PortStatusFrame(SpiderLanPortStatusFrame),
+
+  #[deku(id = "1")]
+  IOStatusFrame(SpiderLanIOStatusFrame)
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -119,4 +181,29 @@ pub enum SpiderLanStatusMessage {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct SpiderLanPortStatusFrame {
   pub ports: [PortStatus; 5]
+}
+
+#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct SpiderLanIOStatusFrame {
+  #[deku(bits = 1)]
+  pub digital: [bool; 8],
+  #[deku(bits = 12)]
+  pub analog: [u16; 8]
+}
+
+/* COMMAND */
+#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[deku(ctx = "api_index: u8", id = "api_index")]
+pub enum SpiderLanCommandMessage {
+  #[deku(id = "0")]
+  SetDigitalOut {
+    #[deku(bits = 1)]
+    set: [bool; 8],
+    #[deku(bits = 1)]
+    reset: [bool; 8]
+  }
 }
