@@ -88,7 +88,16 @@ pub enum SpiderLanConfigMessage {
   RequestPinConfigurations,
 
   #[deku(id = "5")]
-  PinConfigurations([IOPinConfiguration; 8])
+  PinConfigurations([IOPinConfiguration; 8]),
+
+  #[deku(id = "6")]
+  RequestNetworkConfiguration,
+
+  #[deku(id = "7")]
+  NetworkConfiguration(NetworkConfiguration),
+
+  #[deku(id = "8")]
+  SetNetworkConfiguration(NetworkConfiguration)
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -163,6 +172,15 @@ pub enum IOPinConfiguration {
   DigitalOut(DigitalOutMode)
 }
 
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct NetworkConfiguration {
+  pub ip: [u8; 4],
+  #[deku(assert = "*prefix <= 32")]
+  pub prefix: u8,
+}
+
 /* STATUS */
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -205,5 +223,13 @@ pub enum SpiderLanCommandMessage {
     set: [bool; 8],
     #[deku(bits = 1)]
     reset: [bool; 8]
+  },
+  #[deku(id = "1")]
+  SetDMX {
+    offset: u16,
+    #[deku(assert = "(*length + *offset) <= 512", update = "data.len()")]
+    length: u16,
+    #[deku(count = "length")]
+    data: Vec<u8>
   }
 }
