@@ -5,11 +5,12 @@ use alloc::format;
 use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage};
 
 pub mod device_info;
-pub mod usb;
 pub mod spiderlan;
+pub mod usb;
+pub mod tcp;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, api_class: u8, api_index: u8", id = "device_type")]
 pub enum GrappleDeviceMessage {
@@ -49,7 +50,7 @@ impl GrappleDeviceMessage {
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]
 pub enum GrappleBroadcastMessage {
