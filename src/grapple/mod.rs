@@ -9,6 +9,9 @@ pub mod spiderlan;
 pub mod usb;
 pub mod tcp;
 
+pub const MANUFACTURER_GRAPPLE: u8 = 6;
+pub const DEVICE_ID_SPIDERLAN: u8 = 12;
+
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -27,7 +30,7 @@ pub enum GrappleDeviceMessage {
   DistanceSensor,
 
   // TODO: Submit a request to FIRST for this once we go public. This ID may change.
-  #[deku(id = "12")]
+  #[deku(id = "DEVICE_ID_SPIDERLAN")]
   EthernetSwitch(
     #[deku(ctx = "api_class, api_index")]
     SpiderLanMessage

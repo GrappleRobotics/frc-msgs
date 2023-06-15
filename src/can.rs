@@ -1,0 +1,214 @@
+extern crate alloc;
+
+use deku::{prelude::*, bitvec::{BitSlice, bitvec, Msb0}};
+use alloc::vec::Vec;
+use alloc::vec;
+use alloc::format;
+use alloc::collections::BTreeMap;
+
+use crate::{Message, ManufacturerMessage};
+
+const GRAPPLE_API_CLASS_FRAGMENT: u8 = 0b100000;
+const GRAPPLE_API_INDEX_FRAGMENT_START: u8 = 0b0;
+
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+pub struct UnparsedCANMessage {
+  pub id: CANId,
+  pub payload: [u8; 8],
+  pub len: u8
+}
+
+impl UnparsedCANMessage {
+  pub fn new(id: u32, buffer: &[u8]) -> Self {
+    let mut s = Self {
+      id: CANId::from(id),
+      payload: [0u8; 8],
+      len: buffer.len() as u8
+    };
+    s.payload[0..buffer.len()].copy_from_slice(buffer);
+    s
+  }
+}
+
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[deku(type = "u8")]
+pub enum CANMessage {
+  #[deku(id = "0")]
+  Message(Message),
+  #[deku(id = "1")]
+  Unknown(GenericCANMessage),
+  #[deku(id = "2")]
+  FragmentStart(u8, u8, GenericCANMessage),     // (identifier, fragment_len, message)
+  #[deku(id = "3")]
+  Fragment(u8, GenericCANPayload),          // (identifier, message)
+}
+
+impl From<UnparsedCANMessage> for CANMessage {
+  fn from(value: UnparsedCANMessage) -> Self {
+    Self::decode(value.id, &value.payload[0..value.len as usize])
+  }
+}
+
+impl CANMessage {
+  pub fn decode(id: CANId, buffer: &[u8]) -> CANMessage {
+    match (id.manufacturer, id.api_class) {
+      (6, x) if x & GRAPPLE_API_CLASS_FRAGMENT != 0 => match id.api_index {
+        // It's part of a fragmented message
+        GRAPPLE_API_INDEX_FRAGMENT_START => {
+          let fragment_api_class = buffer[0];
+          let fragment_api_index = buffer[1];
+          let fragment_count = buffer[2];
+          CANMessage::FragmentStart(x, fragment_count, GenericCANMessage {
+            id: CANId { device_type: id.device_type, manufacturer: id.manufacturer, api_class: fragment_api_class, api_index: fragment_api_index, device_id: id.device_id },
+            payload: GenericCANPayload { payload_len: (buffer.len() - 3) as u8, payload: buffer[3..].to_vec() }
+          })
+        },
+        seq => CANMessage::Fragment(x, GenericCANPayload { payload_len: buffer.len() as u8, payload: buffer.to_vec() })
+      },
+      _ => {
+        // It's part of a normal message
+        let manufacturer_msg = ManufacturerMessage::read(BitSlice::from_slice(buffer), (id.device_type, id.manufacturer, id.api_class, id.api_index));
+        match manufacturer_msg {
+          Ok(manufacturer_msg) => CANMessage::Message(Message::new(id.device_id, manufacturer_msg.1)),
+          Err(_) => CANMessage::Unknown(GenericCANMessage { 
+            id,
+            payload: GenericCANPayload {
+              payload_len: buffer.len() as u8,
+              payload: buffer.to_vec() 
+            }
+          })
+        }
+      }
+    }
+  }
+}
+
+#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct CANId {
+  pub device_type: u8,
+  pub manufacturer: u8,
+  pub api_class: u8,
+  pub api_index: u8,
+  pub device_id: u8,
+}
+
+impl From<u32> for CANId {
+  fn from(value: u32) -> Self {
+    Self {
+      device_type: ((value >> 6+4+6+8) & 0b11111) as u8,
+      manufacturer: ((value >> 6+4+6) & 0b11111111) as u8,
+      api_class: ((value >> 6+4) & 0b111111) as u8,
+      api_index: ((value >> 6) & 0b1111) as u8,
+      device_id: (value & 0b111111) as u8
+    }
+  }
+}
+
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct GenericCANMessage {
+  pub id: CANId,
+  pub payload: GenericCANPayload
+}
+
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub struct GenericCANPayload {
+  #[deku(update = "self.payload.len()")]
+  pub payload_len: u8,
+  #[deku(count = "payload_len")]
+  pub payload: Vec<u8>
+}
+
+pub struct FragmentMetadata {
+  last_update: i64,
+  id: CANId,
+  len: u8,
+  payload: Vec<u8>
+}
+
+pub struct FragmentReassembler {
+  messages: BTreeMap<u8, FragmentMetadata>,
+  age_off: i64
+}
+
+impl FragmentReassembler {
+  pub fn new(age_off: i64) -> Self {
+    Self { age_off, messages: BTreeMap::new() }
+  }
+
+  pub fn process(&mut self, now: i64, message: CANMessage) -> Option<CANMessage> {
+    let ret = match message {
+      CANMessage::Message(_) => Some(message),
+      CANMessage::Unknown(_) => Some(message),
+      CANMessage::FragmentStart(id, len, frag) => {
+        let mut meta = FragmentMetadata {
+          last_update: now,
+          id: frag.id,
+          len,
+          payload: Vec::with_capacity(len as usize)
+        };
+        meta.payload.extend(frag.payload.payload);
+        self.messages.insert(id, meta);
+        None
+      },
+      CANMessage::Fragment(id, payload) => {
+        let is_done = {
+          let meta = self.messages.get_mut(&id);
+          if let Some(meta) = meta {
+            meta.last_update = now;
+            meta.payload.extend(payload.payload);
+            meta.payload.len() >= meta.len as usize
+          } else { false }
+        };
+
+        if is_done {
+          // Reassemble
+          let meta = self.messages.remove(&id).unwrap();
+          let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
+          Some(decoded)
+        } else {
+          None
+        }
+      },
+    };
+
+    // Get rid of anything that's aged off
+    self.messages.retain(|_, v| (now - v.last_update) <= self.age_off);
+
+    return ret;
+  }
+
+  pub fn maybe_split(&mut self, message: Message, max_bytes: u8) -> Vec<GenericCANMessage> {
+    let mut payload = bitvec![u8, Msb0;];
+    message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index)).ok();
+
+    if payload.as_raw_slice().len() > max_bytes as usize {
+      // Requires split
+      // TODO:
+      vec![]
+    } else {
+      // Can send straight up
+      vec![GenericCANMessage {
+        id: CANId {
+          device_type: message.device_type,
+          manufacturer: message.manufacturer,
+          api_class: message.api_class,
+          api_index: message.api_index,
+          device_id: message.device_id
+        },
+        payload: GenericCANPayload {
+          payload_len: payload.as_raw_slice().len() as u8,
+          payload: payload.as_raw_slice().to_vec()
+        }
+      }]
+    }
+
+  }
+}

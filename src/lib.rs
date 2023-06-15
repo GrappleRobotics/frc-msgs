@@ -2,9 +2,13 @@
 
 extern crate alloc;
 
-pub mod grapple;
+pub mod can;
 pub use deku;
 
+pub mod grapple;
+pub mod ni;
+
+use grapple::MANUFACTURER_GRAPPLE;
 use alloc::{format, vec::Vec};
 use deku::prelude::*;
 use grapple::GrappleDeviceMessage;
@@ -52,7 +56,7 @@ impl Message {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, manufacturer: u8, api_class: u8, api_index: u8", id = "manufacturer")]
 pub enum ManufacturerMessage {
-  #[deku(id = "6")]
+  #[deku(id = "MANUFACTURER_GRAPPLE")]
   Grapple(
     #[deku(ctx = "device_type, api_class, api_index")]
     GrappleDeviceMessage
