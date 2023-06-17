@@ -209,8 +209,6 @@ pub enum DigitalOutMode {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type="u8", bits=2)]
 pub enum IOPinConfiguration {
-  #[deku(id = "0")]
-  Analog,
   #[deku(id = "1")]
   DigitalIn(DigitalInMode),
   #[deku(id = "2")]
@@ -265,8 +263,6 @@ pub enum NetworkStatusFrameSpecific {
 pub struct IOStatusFrame {
   #[deku(bits = 1)]
   pub digital: [bool; 8],
-  #[deku(bits = 12)]
-  pub analog: [u16; 8]
 }
 
 /* COMMAND */
