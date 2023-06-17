@@ -17,5 +17,5 @@ pub enum GrappleUSBMessage {
   DeviceCheck,   // Used to check that the device connected is indeed a Grapple device
 
   #[deku(id = "2")]
-  EncapsulatedCanMessage(UnparsedCANMessage)
+  EncapsulatedCanMessage(u32, UnparsedCANMessage)      // Time (ms), Message. Time is ignored when sending CAN messages
 }

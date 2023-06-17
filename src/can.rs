@@ -143,10 +143,10 @@ impl FragmentReassembler {
     Self { age_off, messages: BTreeMap::new() }
   }
 
-  pub fn process(&mut self, now: i64, message: CANMessage) -> Option<CANMessage> {
+  pub fn process(&mut self, now: i64, raw_len: u8, message: CANMessage) -> Option<(u8, CANMessage)> {
     let ret = match message {
-      CANMessage::Message(_) => Some(message),
-      CANMessage::Unknown(_) => Some(message),
+      CANMessage::Message(_) => Some((raw_len, message)),
+      CANMessage::Unknown(_) => Some((raw_len, message)),
       CANMessage::FragmentStart(id, len, frag) => {
         let mut meta = FragmentMetadata {
           last_update: now,
@@ -172,7 +172,7 @@ impl FragmentReassembler {
           // Reassemble
           let meta = self.messages.remove(&id).unwrap();
           let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
-          Some(decoded)
+          Some((meta.len + 3, decoded))
         } else {
           None
         }
