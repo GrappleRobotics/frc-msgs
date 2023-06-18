@@ -8,6 +8,7 @@ pub mod device_info;
 pub mod spiderlan;
 pub mod usb;
 pub mod tcp;
+pub mod udp;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_ID_SPIDERLAN: u8 = 12;
