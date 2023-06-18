@@ -185,17 +185,24 @@ impl FragmentReassembler {
     return ret;
   }
 
-  pub fn maybe_split(&mut self, message: Message, max_bytes: u8) -> Vec<GenericCANMessage> {
+  pub fn maybe_split(&mut self, message: Message) -> Vec<UnparsedCANMessage> {
     let mut payload = bitvec![u8, Msb0;];
     message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index)).ok();
 
-    if payload.as_raw_slice().len() > max_bytes as usize {
+    if payload.as_raw_slice().len() > 8 as usize {
       // Requires split
       // TODO:
       vec![]
     } else {
       // Can send straight up
-      vec![GenericCANMessage {
+      let len = payload.as_raw_slice().len();
+      let mut buf = [0u8; 8];
+      
+      for i in 0..len {
+        buf[i] = payload.as_raw_slice()[i];
+      }
+
+      vec![UnparsedCANMessage {
         id: CANId {
           device_type: message.device_type,
           manufacturer: message.manufacturer,
@@ -203,10 +210,8 @@ impl FragmentReassembler {
           api_index: message.api_index,
           device_id: message.device_id
         },
-        payload: GenericCANPayload {
-          payload_len: payload.as_raw_slice().len() as u8,
-          payload: payload.as_raw_slice().to_vec()
-        }
+        len: len as u8,
+        payload: buf
       }]
     }
 

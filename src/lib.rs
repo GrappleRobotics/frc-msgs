@@ -56,6 +56,11 @@ impl Message {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, manufacturer: u8, api_class: u8, api_index: u8", id = "manufacturer")]
 pub enum ManufacturerMessage {
+  #[deku(id = "ni::MANUFACTURER_NI")]
+  Ni(
+    #[deku(ctx = "device_type, api_class, api_index")]
+    ni::NiDeviceMessage
+  ),
   #[deku(id = "MANUFACTURER_GRAPPLE")]
   Grapple(
     #[deku(ctx = "device_type, api_class, api_index")]
@@ -66,12 +71,14 @@ pub enum ManufacturerMessage {
 impl ManufacturerMessage {
   pub fn device_type(&self) -> u8 {
     match self {
+      ManufacturerMessage::Ni(ni) => ni.device_type(),
       ManufacturerMessage::Grapple(grpl) => grpl.device_type(),
     }
   }
 
   pub fn api(&self) -> (u8, u8) {
     match self {
+      ManufacturerMessage::Ni(ni) => ni.api(),
       ManufacturerMessage::Grapple(grpl) => grpl.api(),
     }
   }
