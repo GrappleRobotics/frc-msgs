@@ -117,7 +117,8 @@ pub struct FlatNetworkConfiguration {
 pub struct VlanNetworkConfiguration {
   pub ip: IPConfiguration,
   pub management_vlan: u16,
-  pub ports: [PortVlanConfiguration; 4]
+  pub usb: PortVlanConfiguration,
+  pub ports: [PortVlanConfiguration; 6]
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -126,7 +127,7 @@ pub struct VlanNetworkConfiguration {
 pub struct UplinkFailoverConfiguration {
   pub ip: IPConfiguration,
   #[deku(assert = "port_membership.iter().any(|x| *x)")]
-  pub port_membership: [bool; 4],   // true if a port is a part of the failover group
+  pub port_membership: [bool; 6],   // true if a port is a part of the failover group
   pub ping_upstream_ip: [u8; 4],
   #[deku(assert = "*ping_interval >= 100 && *ping_interval <= 2000")]
   pub ping_interval: u16,   // In ms, 10ms resolution
@@ -233,7 +234,8 @@ pub enum SpiderLanStatusMessage {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NetworkStatusFrame {
   pub management: PortStatus,
-  pub ports: [PortStatus; 4],
+  pub usb: PortStatus,
+  pub ports: [PortStatus; 6],
   pub specific: NetworkStatusFrameSpecific
 }
 
@@ -253,7 +255,8 @@ pub enum NetworkStatusFrameSpecific {
     n_failed: u8,
     reestablish_cooloff_remaining: u16,
     management_pvid: u16,
-    port_pvid: [u16; 4]
+    usb_pvid: u16,
+    port_pvid: [u16; 6]
   }
 }
 
