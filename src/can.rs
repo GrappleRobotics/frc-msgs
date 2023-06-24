@@ -108,6 +108,16 @@ impl From<u32> for CANId {
   }
 }
 
+impl Into<u32> for CANId {
+  fn into(self) -> u32 {
+    (self.device_id as u32 & 0b1111111)
+    | ((self.api_index as u32 & 0b1111) << 6)
+    | ((self.api_class as u32 & 0b111111) << (6+4))
+    | ((self.manufacturer as u32 & 0b11111111) << (6+4+6))
+    | ((self.device_type as u32 & 0b11111) << (6+4+6+8))
+  }
+}
+
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]

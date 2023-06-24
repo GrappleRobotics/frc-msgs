@@ -2,6 +2,7 @@ extern crate alloc;
 use deku::prelude::*;
 use alloc::format;
 
+use crate::DEVICE_TYPE_BROADCAST;
 use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage};
 
 pub mod device_info;
@@ -11,14 +12,14 @@ pub mod tcp;
 pub mod udp;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
-pub const DEVICE_ID_SPIDERLAN: u8 = 12;
+pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, api_class: u8, api_index: u8", id = "device_type")]
 pub enum GrappleDeviceMessage {
-  #[deku(id = "0")]
+  #[deku(id = "DEVICE_TYPE_BROADCAST")]
   Broadcast(
     #[deku(ctx = "api_class, api_index")]
     GrappleBroadcastMessage
@@ -31,7 +32,7 @@ pub enum GrappleDeviceMessage {
   DistanceSensor,
 
   // TODO: Submit a request to FIRST for this once we go public. This ID may change.
-  #[deku(id = "DEVICE_ID_SPIDERLAN")]
+  #[deku(id = "DEVICE_TYPE_SPIDERLAN")]
   EthernetSwitch(
     #[deku(ctx = "api_class, api_index")]
     SpiderLanMessage
