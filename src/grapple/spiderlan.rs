@@ -288,5 +288,9 @@ pub enum SpiderLanCommandMessage {
     length: u16,
     #[deku(count = "length")]
     data: Vec<u8>
+  },
+  #[deku(id = "2")]
+  SetPWM {
+    channels: [u16; 4]
   }
 }

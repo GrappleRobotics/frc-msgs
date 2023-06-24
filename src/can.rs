@@ -59,8 +59,8 @@ impl CANMessage {
         GRAPPLE_API_INDEX_FRAGMENT_START => {
           let fragment_api_class = buffer[0];
           let fragment_api_index = buffer[1];
-          let fragment_count = buffer[2];
-          CANMessage::FragmentStart(x, fragment_count, GenericCANMessage {
+          let message_len = buffer[2];
+          CANMessage::FragmentStart(x, message_len, GenericCANMessage {
             id: CANId { device_type: id.device_type, manufacturer: id.manufacturer, api_class: fragment_api_class, api_index: fragment_api_index, device_id: id.device_id },
             payload: GenericCANPayload { payload_len: (buffer.len() - 3) as u8, payload: buffer[3..].to_vec() }
           })
@@ -185,24 +185,70 @@ impl FragmentReassembler {
     return ret;
   }
 
-  pub fn maybe_split(&mut self, message: Message) -> Vec<UnparsedCANMessage> {
+  pub fn maybe_split(message: Message, fragment_id: u8) -> Result<smallvec::SmallVec<[UnparsedCANMessage; 4]>, DekuError> {
     let mut payload = bitvec![u8, Msb0;];
-    message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index)).ok();
+    message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index))?;
+    let payload_slice = payload.as_raw_slice();
 
-    if payload.as_raw_slice().len() > 8 as usize {
+    if payload_slice.len() > 8 as usize {
       // Requires split
-      // TODO:
-      vec![]
+      let mut msgs: smallvec::SmallVec<[UnparsedCANMessage; 4]> = smallvec::smallvec![];
+
+      // First message - first three bytes are frag api class, frag api idx, and total size followed by the first 5 bytes of the fragment
+      msgs.push(UnparsedCANMessage {
+        id: CANId {
+          device_type: message.device_type,
+          manufacturer: message.manufacturer,
+          api_class: fragment_id | GRAPPLE_API_CLASS_FRAGMENT,
+          api_index: GRAPPLE_API_INDEX_FRAGMENT_START,
+          device_id: message.device_id
+        },
+        len: 8,
+        payload: [
+          message.api_class,
+          message.api_index,
+          payload_slice.len() as u8,
+          payload_slice[0], payload_slice[1],
+          payload_slice[2], payload_slice[3],
+          payload_slice[4]
+        ]
+      });
+
+      // Subsequent messages are made entirely of the payload
+      let mut i = 1;
+      let mut offset = 5;
+      while offset < payload_slice.len() {
+        let mut buf = [0u8; 8];
+        let n = 8.min(payload_slice.len() - offset);
+        buf[0..n].copy_from_slice(&payload_slice[offset..offset+n]);
+
+        msgs.push(UnparsedCANMessage {
+          id: CANId {
+            device_type: message.device_type,
+            manufacturer: message.manufacturer,
+            api_class: fragment_id | GRAPPLE_API_CLASS_FRAGMENT,
+            api_index: i,
+            device_id: message.device_id
+          },
+          len: n as u8,
+          payload: buf
+        });
+
+        offset += 8;
+        i += 1;
+      }
+
+      Ok(msgs)
     } else {
       // Can send straight up
-      let len = payload.as_raw_slice().len();
+      let len = payload_slice.len();
       let mut buf = [0u8; 8];
       
       for i in 0..len {
-        buf[i] = payload.as_raw_slice()[i];
+        buf[i] = payload_slice[i];
       }
 
-      vec![UnparsedCANMessage {
+      Ok(smallvec::smallvec![UnparsedCANMessage {
         id: CANId {
           device_type: message.device_type,
           manufacturer: message.manufacturer,
@@ -212,8 +258,46 @@ impl FragmentReassembler {
         },
         len: len as u8,
         payload: buf
-      }]
+      }])
     }
 
+  }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Message, can::CANMessage};
+
+    use super::FragmentReassembler;
+
+  #[test]
+  fn test_reassemble() {
+    let name = "Some long name".to_owned();
+    let msg = Message::new(0xAB, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
+      crate::grapple::GrappleBroadcastMessage::DeviceInfo(
+        crate::grapple::device_info::GrappleDeviceInfo::EnumerateResponse {
+          model_id: crate::grapple::device_info::GrappleModelId::SpiderLan,
+          firmware_version: [1, 2, 3],
+          serial: 0xdeadbeef,
+          name_len: name.len() as u8,
+          name: name.as_bytes().to_vec()
+        }
+      )
+    )));
+
+    println!("{:?}", msg);
+
+    let mut reassembler = FragmentReassembler::new(1000);
+    let fragments = FragmentReassembler::maybe_split(msg.clone(), 12).unwrap();
+
+    let mut result = None;
+    for frag in fragments {
+      println!("{:?}", frag);
+      result = reassembler.process(0, frag.len, frag.into());
+    }
+    match result.unwrap().1 {
+      CANMessage::Message(m) if m == msg => (),
+      _ => panic!("Defragmented Message does not match!")
+    }
   }
 }
