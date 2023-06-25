@@ -289,6 +289,7 @@ mod tests {
           model_id: crate::grapple::device_info::GrappleModelId::SpiderLan,
           firmware_version: [1, 2, 3],
           serial: 0xdeadbeef,
+          is_dfu: false,
           name_len: name.len() as u8,
           name: name.as_bytes().to_vec()
         }
