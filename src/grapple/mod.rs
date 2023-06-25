@@ -3,13 +3,14 @@ use deku::prelude::*;
 use alloc::format;
 
 use crate::DEVICE_TYPE_BROADCAST;
-use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage};
+use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage, firmware::GrappleFirmwareMessage};
 
 pub mod device_info;
 pub mod spiderlan;
 pub mod usb;
 pub mod tcp;
 pub mod udp;
+pub mod firmware;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
@@ -26,7 +27,10 @@ pub enum GrappleDeviceMessage {
   ),
 
   #[deku(id = "31")]
-  FirmwareUpdate,
+  FirmwareUpdate(
+    #[deku(ctx = "api_class, api_index")]
+    GrappleFirmwareMessage
+  ),
 
   #[deku(id = "6")]
   DistanceSensor,
@@ -47,7 +51,7 @@ impl GrappleDeviceMessage {
   pub fn api(&self) -> (u8, u8) {
     match self {
       GrappleDeviceMessage::Broadcast(bcast) => bcast.api(),
-      GrappleDeviceMessage::FirmwareUpdate => unreachable!(),
+      GrappleDeviceMessage::FirmwareUpdate(fware) => fware.api(),
       GrappleDeviceMessage::DistanceSensor => unreachable!(),
       GrappleDeviceMessage::EthernetSwitch(switch) => switch.api(),
     }
