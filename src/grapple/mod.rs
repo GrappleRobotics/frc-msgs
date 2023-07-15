@@ -2,7 +2,7 @@ extern crate alloc;
 use deku::prelude::*;
 use alloc::format;
 
-use crate::DEVICE_TYPE_BROADCAST;
+use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE};
 use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage, firmware::GrappleFirmwareMessage};
 
 pub mod device_info;
@@ -26,7 +26,7 @@ pub enum GrappleDeviceMessage {
     GrappleBroadcastMessage
   ),
 
-  #[deku(id = "31")]
+  #[deku(id = "DEVICE_TYPE_FIRMWARE_UPGRADE")]
   FirmwareUpdate(
     #[deku(ctx = "api_class, api_index")]
     GrappleFirmwareMessage

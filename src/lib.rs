@@ -14,6 +14,7 @@ use deku::prelude::*;
 use grapple::GrappleDeviceMessage;
 
 pub const DEVICE_TYPE_BROADCAST: u8 = 0x00;
+pub const DEVICE_TYPE_FIRMWARE_UPGRADE: u8 = 31;
 pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]

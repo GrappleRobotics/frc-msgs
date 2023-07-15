@@ -26,7 +26,12 @@ pub enum GrappleDeviceInfo {
     firmware_version: [u8; 3],
     serial: u32,
 
+    #[deku(bits = "1")]
     is_dfu: bool,
+    #[deku(bits = "1")]
+    is_dfu_in_progress: bool,
+    #[deku(bits = "6")]
+    reserved: u8,
 
     #[deku(assert = "*name_len <= 16", update = "name.len()")]
     name_len: u8,

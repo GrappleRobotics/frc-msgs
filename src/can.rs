@@ -276,9 +276,9 @@ impl FragmentReassembler {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Message, can::CANMessage};
+  use crate::{Message, can::CANMessage};
 
-    use super::FragmentReassembler;
+  use super::FragmentReassembler;
 
   #[test]
   fn test_reassemble() {
@@ -290,6 +290,8 @@ mod tests {
           firmware_version: [1, 2, 3],
           serial: 0xdeadbeef,
           is_dfu: false,
+          is_dfu_in_progress: false,
+          reserved: 0,
           name_len: name.len() as u8,
           name: name.as_bytes().to_vec()
         }
