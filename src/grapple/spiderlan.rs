@@ -176,7 +176,7 @@ impl Default for PortVlanConfiguration {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOPinConfigurationMessage {
-  #[deku(bits = 4, assert = "*pin < 8")]
+  #[deku(bits = 4, assert = "*pin < 4")]
   pub pin: u8,
   pub config: IOPinConfiguration
 }
@@ -265,7 +265,7 @@ pub enum NetworkStatusFrameSpecific {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOStatusFrame {
   #[deku(bits = 1)]
-  pub digital: [bool; 8],
+  pub digital: [bool; 4],
 }
 
 /* COMMAND */
@@ -277,20 +277,8 @@ pub enum SpiderLanCommandMessage {
   #[deku(id = "0")]
   SetDigitalOut {
     #[deku(bits = 1)]
-    set: [bool; 8],
+    set: [bool; 4],
     #[deku(bits = 1)]
-    reset: [bool; 8]
+    reset: [bool; 4]
   },
-  #[deku(id = "1")]
-  SetDMX {
-    offset: u16,
-    #[deku(assert = "(*length + *offset) <= 512", update = "data.len()")]
-    length: u16,
-    #[deku(count = "length")]
-    data: Vec<u8>
-  },
-  #[deku(id = "2")]
-  SetPWM {
-    channels: [u16; 4]
-  }
 }
