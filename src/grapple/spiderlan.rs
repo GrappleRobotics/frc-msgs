@@ -88,7 +88,7 @@ pub enum SpiderLanConfigMessage {
   RequestPinConfigurations,
 
   #[deku(id = "5")]
-  PinConfigurations([IOPinConfiguration; 8]),
+  PinConfigurations([IOPinConfiguration; 4]),
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
