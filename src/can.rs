@@ -85,7 +85,7 @@ impl CANMessage {
   }
 }
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CANId {
@@ -94,6 +94,22 @@ pub struct CANId {
   pub api_class: u8,
   pub api_index: u8,
   pub device_id: u8,
+}
+
+impl DekuWrite for CANId {
+    fn write(&self, output: &mut deku::bitvec::BitVec<u8, deku::bitvec::Msb0>, ctx: ()) -> Result<(), DekuError> {
+      Into::<u32>::into(self.clone()).write(output, ctx)
+    }
+}
+
+impl<'a> DekuRead<'a> for CANId {
+    fn read(input: &'a deku::bitvec::BitSlice<u8, deku::bitvec::Msb0>, ctx: ()) -> Result<(&'a deku::bitvec::BitSlice<u8, deku::bitvec::Msb0>, Self), DekuError>
+    where
+      Self: Sized
+    {
+      let num = u32::read(input, ctx)?;
+      Ok((num.0, CANId::from(num.1)))
+    }
 }
 
 impl From<u32> for CANId {

@@ -88,7 +88,7 @@ pub enum SpiderLanConfigMessage {
   RequestPinConfigurations,
 
   #[deku(id = "5")]
-  PinConfigurations([IOPinConfiguration; 4]),
+  PinConfigurations([IOPinConfiguration; 8]),
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -128,13 +128,6 @@ pub struct UplinkFailoverConfiguration {
   pub ip: IPConfiguration,
   #[deku(assert = "port_membership.iter().any(|x| *x)")]
   pub port_membership: [bool; 6],   // true if a port is a part of the failover group
-  pub ping_upstream_ip: [u8; 4],
-  #[deku(assert = "*ping_interval >= 100 && *ping_interval <= 2000")]
-  pub ping_interval: u16,   // In ms, 10ms resolution
-  #[deku(assert = "*n_fail_before_switch >= 1 && *n_fail_before_switch <= 10")]
-  pub n_fail_before_switch: u8,
-  #[deku(assert = "*reestablish_cooloff >= 2000 && *reestablish_cooloff <= 30000")]
-  pub reestablish_cooloff: u16,          // In ms, 10ms resolution
 }
 
 #[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -176,7 +169,7 @@ impl Default for PortVlanConfiguration {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOPinConfigurationMessage {
-  #[deku(bits = 4, assert = "*pin < 4")]
+  #[deku(bits = 4, assert = "*pin < 8")]
   pub pin: u8,
   pub config: IOPinConfiguration
 }
@@ -251,9 +244,6 @@ pub enum NetworkStatusFrameSpecific {
   #[deku(id = "2")]
   UplinkFailover {
     active_port: u8,
-    upstream_ping_ok: bool,
-    n_failed: u8,
-    reestablish_cooloff_remaining: u16,
     management_pvid: u16,
     usb_pvid: u16,
     port_pvid: [u16; 6]
@@ -265,7 +255,7 @@ pub enum NetworkStatusFrameSpecific {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOStatusFrame {
   #[deku(bits = 1)]
-  pub digital: [bool; 4],
+  pub digital: [bool; 8],
 }
 
 /* COMMAND */
@@ -277,8 +267,8 @@ pub enum SpiderLanCommandMessage {
   #[deku(id = "0")]
   SetDigitalOut {
     #[deku(bits = 1)]
-    set: [bool; 4],
+    set: [bool; 8],
     #[deku(bits = 1)]
-    reset: [bool; 4]
+    reset: [bool; 8]
   },
 }

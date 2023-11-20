@@ -3,16 +3,18 @@ use deku::prelude::*;
 use alloc::format;
 
 use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE};
-use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage, firmware::GrappleFirmwareMessage};
+use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage};
 
 pub mod device_info;
 pub mod spiderlan;
+pub mod lasercan;
 pub mod usb;
 pub mod tcp;
 pub mod udp;
 pub mod firmware;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
+pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
@@ -32,8 +34,11 @@ pub enum GrappleDeviceMessage {
     GrappleFirmwareMessage
   ),
 
-  #[deku(id = "6")]
-  DistanceSensor,
+  #[deku(id = "DEVICE_TYPE_DISTANCE_SENSOR")]
+  DistanceSensor(
+    #[deku(ctx = "api_class, api_index")]
+    LaserCanMessage
+  ),
 
   // TODO: Submit a request to FIRST for this once we go public. This ID may change.
   #[deku(id = "DEVICE_TYPE_SPIDERLAN")]
@@ -52,7 +57,7 @@ impl GrappleDeviceMessage {
     match self {
       GrappleDeviceMessage::Broadcast(bcast) => bcast.api(),
       GrappleDeviceMessage::FirmwareUpdate(fware) => fware.api(),
-      GrappleDeviceMessage::DistanceSensor => unreachable!(),
+      GrappleDeviceMessage::DistanceSensor(lcan) => lcan.api(),
       GrappleDeviceMessage::EthernetSwitch(switch) => switch.api(),
     }
   }
