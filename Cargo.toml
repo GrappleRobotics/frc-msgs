@@ -1,6 +1,6 @@
 [package]
-name = "frc-msgs"
-version = "0.1.1"
+name = "grapple-frc-msgs"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
