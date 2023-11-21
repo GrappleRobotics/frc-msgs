@@ -17,7 +17,7 @@ pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, api_class: u8, api_index: u8", id = "device_type")]
@@ -63,7 +63,7 @@ impl GrappleDeviceMessage {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]

@@ -17,7 +17,7 @@ pub const DEVICE_TYPE_BROADCAST: u8 = 0x00;
 pub const DEVICE_TYPE_FIRMWARE_UPGRADE: u8 = 31;
 pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Message {
@@ -53,7 +53,7 @@ impl Message {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "device_type: u8, manufacturer: u8, api_class: u8, api_index: u8", id = "manufacturer")]

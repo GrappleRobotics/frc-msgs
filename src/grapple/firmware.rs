@@ -3,7 +3,7 @@ use deku::prelude::*;
 use alloc::format;
 use alloc::vec::Vec;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]

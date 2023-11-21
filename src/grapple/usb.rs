@@ -7,7 +7,7 @@ use crate::Message;
 
 use crate::can::UnparsedCANMessage;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 #[deku(magic = b"GUSB", type = "u8")]
 pub enum GrappleUSBMessage {
   #[deku(id = "0")]

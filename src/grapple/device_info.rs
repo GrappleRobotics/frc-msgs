@@ -3,7 +3,7 @@ use deku::prelude::*;
 use alloc::vec::Vec;
 use alloc::format;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -12,7 +12,7 @@ pub enum GrappleModelId {
   SpiderLan = 0x10,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_index: u8", id = "api_index")]

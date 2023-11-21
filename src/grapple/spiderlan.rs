@@ -2,7 +2,7 @@ extern crate alloc;
 use deku::prelude::*;
 use alloc::{format, vec::Vec};
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -15,7 +15,7 @@ pub enum PortDuplexStatus {
   Unknown
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -31,7 +31,7 @@ pub enum PortStatus {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]
@@ -67,7 +67,7 @@ impl SpiderLanMessage {
 }
 
 /* CONFIGURATION */
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_index: u8", id = "api_index")]
@@ -91,7 +91,7 @@ pub enum SpiderLanConfigMessage {
   PinConfigurations([IOPinConfiguration; 8]),
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -104,14 +104,14 @@ pub enum NetworkConfiguration {
   UplinkFailover(UplinkFailoverConfiguration)
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct FlatNetworkConfiguration {
   pub ip: IPConfiguration
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct VlanNetworkConfiguration {
@@ -121,7 +121,7 @@ pub struct VlanNetworkConfiguration {
   pub ports: [PortVlanConfiguration; 6]
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct UplinkFailoverConfiguration {
@@ -130,7 +130,7 @@ pub struct UplinkFailoverConfiguration {
   pub port_membership: [bool; 6],   // true if a port is a part of the failover group
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IPConfiguration {
@@ -139,7 +139,7 @@ pub struct IPConfiguration {
   pub prefix: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PortsConfiguration {
@@ -147,7 +147,7 @@ pub struct PortsConfiguration {
   pub vlans: [PortVlanConfiguration; 5]
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct PortVlanConfiguration {
@@ -165,7 +165,7 @@ impl Default for PortVlanConfiguration {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOPinConfigurationMessage {
@@ -174,7 +174,7 @@ pub struct IOPinConfigurationMessage {
   pub config: IOPinConfiguration
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type="u8", bits=2)]
@@ -187,7 +187,7 @@ pub enum DigitalInMode {
   PullDown
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type="u8", bits=1)]
@@ -198,7 +198,7 @@ pub enum DigitalOutMode {
   OpenDrain,
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, Copy, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type="u8", bits=2)]
@@ -210,7 +210,7 @@ pub enum IOPinConfiguration {
 }
 
 /* STATUS */
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_index: u8", id = "api_index")]
@@ -222,7 +222,7 @@ pub enum SpiderLanStatusMessage {
   Io(IOStatusFrame)
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NetworkStatusFrame {
@@ -232,7 +232,7 @@ pub struct NetworkStatusFrame {
   pub specific: NetworkStatusFrameSpecific
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -250,7 +250,7 @@ pub enum NetworkStatusFrameSpecific {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct IOStatusFrame {
@@ -259,7 +259,7 @@ pub struct IOStatusFrame {
 }
 
 /* COMMAND */
-#[derive(Debug, Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(ctx = "api_index: u8", id = "api_index")]

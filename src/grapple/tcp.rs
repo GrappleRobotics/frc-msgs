@@ -7,7 +7,7 @@ use crate::Message;
 
 use crate::can::UnparsedCANMessage;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 #[deku(magic = b"GTCP", type = "u8")]
 pub enum GrappleTCPMessage {
   #[deku(id = "0")]

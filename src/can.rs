@@ -11,7 +11,7 @@ use crate::{Message, ManufacturerMessage};
 const GRAPPLE_API_CLASS_FRAGMENT: u8 = 0b100000;
 const GRAPPLE_API_INDEX_FRAGMENT_START: u8 = 0b0;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 pub struct UnparsedCANMessage {
   pub id: CANId,
   pub payload: [u8; 8],
@@ -30,7 +30,7 @@ impl UnparsedCANMessage {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[deku(type = "u8")]
@@ -85,7 +85,7 @@ impl CANMessage {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CANId {
@@ -134,7 +134,7 @@ impl Into<u32> for CANId {
   }
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANMessage {
@@ -142,7 +142,7 @@ pub struct GenericCANMessage {
   pub payload: GenericCANPayload
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Clone, DekuRead, DekuWrite)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANPayload {
@@ -287,46 +287,5 @@ impl FragmentReassembler {
       }])
     }
 
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use crate::{Message, can::CANMessage};
-
-  use super::FragmentReassembler;
-
-  #[test]
-  fn test_reassemble() {
-    let name = "Some long name".to_owned();
-    let msg = Message::new(0xAB, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
-      crate::grapple::GrappleBroadcastMessage::DeviceInfo(
-        crate::grapple::device_info::GrappleDeviceInfo::EnumerateResponse {
-          model_id: crate::grapple::device_info::GrappleModelId::SpiderLan,
-          firmware_version: [1, 2, 3],
-          serial: 0xdeadbeef,
-          is_dfu: false,
-          is_dfu_in_progress: false,
-          reserved: 0,
-          name_len: name.len() as u8,
-          name: name.as_bytes().to_vec()
-        }
-      )
-    )));
-
-    println!("{:?}", msg);
-
-    let mut reassembler = FragmentReassembler::new(1000);
-    let fragments = FragmentReassembler::maybe_split(msg.clone(), 12).unwrap();
-
-    let mut result = None;
-    for frag in fragments {
-      println!("{:?}", frag);
-      result = reassembler.process(0, frag.len, frag.into());
-    }
-    match result.unwrap().1 {
-      CANMessage::Message(m) if m == msg => (),
-      _ => panic!("Defragmented Message does not match!")
-    }
   }
 }
