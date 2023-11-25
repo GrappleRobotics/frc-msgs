@@ -1,10 +1,10 @@
 use crate::MessageContext;
-use binmarshal::{BinMarshal, LengthTaggedVec};
+use binmarshal::BinMarshal;
 
 #[derive(Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(tag_type = "u8")]
+#[marshal(tag_type = u8)]
 pub enum GrappleModelId {
   #[marshal(tag = "0x10")]
   LaserCan,
@@ -23,7 +23,6 @@ pub enum GrappleDeviceInfo {
   #[marshal(tag = "1")]
   EnumerateResponse {
     model_id: GrappleModelId,
-    firmware_version: [u8; 3],
     serial: u32,
 
     #[marshal(bits = 1)]
@@ -32,7 +31,9 @@ pub enum GrappleDeviceInfo {
     is_dfu_in_progress: bool,
 
     #[marshal(align = 1)]
-    name: LengthTaggedVec<u8, u8>
+    version: String,
+
+    name: String
   },
 
   #[marshal(tag = "2")]
@@ -43,7 +44,7 @@ pub enum GrappleDeviceInfo {
   #[marshal(tag = "3")]
   SetName {
     serial: u32,
-    name: LengthTaggedVec<u8, u8>
+    name: String
   },
 
   #[marshal(tag = "4")]
