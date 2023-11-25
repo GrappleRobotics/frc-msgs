@@ -1,12 +1,10 @@
-extern crate alloc;
-use deku::prelude::*;
-use alloc::format;
+use binmarshal::BinMarshal;
 
-use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE};
-use self::{device_info::GrappleDeviceInfo, spiderlan::SpiderLanMessage, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage};
+use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, MessageContext};
+use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage};
 
 pub mod device_info;
-pub mod spiderlan;
+// pub mod spiderlan;
 pub mod lasercan;
 pub mod usb;
 pub mod tcp;
@@ -17,71 +15,38 @@ pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
-#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deku(ctx = "device_type: u8, api_class: u8, api_index: u8", id = "device_type")]
+#[marshal(ctx = MessageContext, tag = "ctx.device_type")]
 pub enum GrappleDeviceMessage {
-  #[deku(id = "DEVICE_TYPE_BROADCAST")]
+  #[marshal(tag = "DEVICE_TYPE_BROADCAST")]
   Broadcast(
-    #[deku(ctx = "api_class, api_index")]
+    #[marshal(forward_ctx)]
     GrappleBroadcastMessage
   ),
 
-  #[deku(id = "DEVICE_TYPE_FIRMWARE_UPGRADE")]
+  #[marshal(tag = "DEVICE_TYPE_FIRMWARE_UPGRADE")]
   FirmwareUpdate(
-    #[deku(ctx = "api_class, api_index")]
+    #[marshal(forward_ctx)]
     GrappleFirmwareMessage
   ),
 
-  #[deku(id = "DEVICE_TYPE_DISTANCE_SENSOR")]
+  #[marshal(tag = "DEVICE_TYPE_DISTANCE_SENSOR")]
   DistanceSensor(
-    #[deku(ctx = "api_class, api_index")]
+    #[marshal(forward_ctx)]
     LaserCanMessage
   ),
-
-  // TODO: Submit a request to FIRST for this once we go public. This ID may change.
-  #[deku(id = "DEVICE_TYPE_SPIDERLAN")]
-  EthernetSwitch(
-    #[deku(ctx = "api_class, api_index")]
-    SpiderLanMessage
-  ),
 }
 
-impl GrappleDeviceMessage {
-  pub fn device_type(&self) -> u8 {
-    self.deku_id().unwrap()
-  }
-
-  pub fn api(&self) -> (u8, u8) {
-    match self {
-      GrappleDeviceMessage::Broadcast(bcast) => bcast.api(),
-      GrappleDeviceMessage::FirmwareUpdate(fware) => fware.api(),
-      GrappleDeviceMessage::DistanceSensor(lcan) => lcan.api(),
-      GrappleDeviceMessage::EthernetSwitch(switch) => switch.api(),
-    }
-  }
-}
-
-#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]
+#[marshal(ctx = MessageContext, tag = "ctx.api_class")]
 pub enum GrappleBroadcastMessage {
-  #[deku(id = "0")]
+  #[marshal(tag = "0")]
   DeviceInfo(
-    #[deku(ctx = "api_index")]
+    #[marshal(forward_ctx)]
     GrappleDeviceInfo
   )
-}
-
-impl GrappleBroadcastMessage {
-  pub fn api(&self) -> (u8, u8) {
-    (
-      self.deku_id().unwrap(),
-      match self {
-        GrappleBroadcastMessage::DeviceInfo(di) => di.deku_id().unwrap(),
-      }
-    )
-  }
 }

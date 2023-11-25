@@ -1,13 +1,10 @@
-extern crate alloc;
-use deku::prelude::*;
-use alloc::vec::Vec;
-use alloc::format;
+use binmarshal::BinMarshal;
 
 use super::device_info::GrappleModelId;
 
-#[derive(Clone, DekuRead, DekuWrite)]
-#[deku(magic = b"GUDP", type = "u8")]
+#[derive(Clone, BinMarshal)]
+#[marshal(tag_type = u8)]
 pub enum GrappleUDPMessage {
-  #[deku(id = "0")]
+  #[marshal(tag = "0")]
   Discover(GrappleModelId)
 }

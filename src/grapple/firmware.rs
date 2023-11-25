@@ -1,39 +1,20 @@
-extern crate alloc;
-use deku::prelude::*;
-use alloc::format;
-use alloc::vec::Vec;
+use crate::MessageContext;
+use binmarshal::{BinMarshal, LengthTaggedVec};
 
-#[derive(Clone, DekuRead, DekuWrite, PartialEq, Eq)]
+#[derive(Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deku(ctx = "api_class: u8, api_index: u8", id = "api_class")]
+#[marshal(ctx = MessageContext, tag = "ctx.api_class")]
 pub enum GrappleFirmwareMessage {
-  #[deku(id = "0")]
+  #[marshal(tag = "0")]
   StartFieldUpgrade { serial: u32 },
-  #[deku(id = "1")]
+  #[marshal(tag = "1")]
   UpdatePart {
     serial: u32,
-    #[deku(update = "data.len()")]
-    len: u8,
-    #[deku(count = "len")]
-    data: Vec<u8>
+    data: LengthTaggedVec<u8, u8>
   },
-  #[deku(id = "2")]
+  #[marshal(tag = "2")]
   UpdatePartAck { serial: u32 },
-  #[deku(id = "3")]
+  #[marshal(tag = "3")]
   UpdateDone { serial: u32 }
-}
-
-impl GrappleFirmwareMessage {
-  pub fn api(&self) -> (u8, u8) {
-    (
-      self.deku_id().unwrap(),
-      match self {
-        GrappleFirmwareMessage::StartFieldUpgrade { .. } => 0,
-        GrappleFirmwareMessage::UpdatePart { .. } => 0,
-        GrappleFirmwareMessage::UpdatePartAck { .. } => 0,
-        GrappleFirmwareMessage::UpdateDone { .. } => 0,
-      }
-    )
-  }
 }

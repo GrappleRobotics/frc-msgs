@@ -1,17 +1,14 @@
 extern crate alloc;
 
-use deku::{prelude::*, bitvec::{BitSlice, bitvec, Msb0}};
-use alloc::vec::Vec;
-use alloc::vec;
-use alloc::format;
 use alloc::collections::BTreeMap;
+use binmarshal::{BinMarshal, LengthTaggedVec, rw::{BitView, BufferBitWriter, BitWriter}};
 
 use crate::{Message, ManufacturerMessage};
 
 const GRAPPLE_API_CLASS_FRAGMENT: u8 = 0b100000;
 const GRAPPLE_API_INDEX_FRAGMENT_START: u8 = 0b0;
 
-#[derive(Clone, DekuRead, DekuWrite)]
+#[derive(Clone, BinMarshal)]
 pub struct UnparsedCANMessage {
   pub id: CANId,
   pub payload: [u8; 8],
@@ -30,18 +27,18 @@ impl UnparsedCANMessage {
   }
 }
 
-#[derive(Clone, DekuRead, DekuWrite)]
+#[derive(Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[deku(type = "u8")]
+#[marshal(tag_type = u8)]
 pub enum CANMessage {
-  #[deku(id = "0")]
+  #[marshal(tag = "0")]
   Message(Message),
-  #[deku(id = "1")]
+  #[marshal(tag = "1")]
   Unknown(GenericCANMessage),
-  #[deku(id = "2")]
+  #[marshal(tag = "2")]
   FragmentStart(u8, u8, GenericCANMessage),     // (identifier, fragment_len, message)
-  #[deku(id = "3")]
+  #[marshal(tag = "3")]
   Fragment(u8, GenericCANPayload),          // (identifier, message)
 }
 
@@ -62,21 +59,20 @@ impl CANMessage {
           let message_len = buffer[2];
           CANMessage::FragmentStart(x, message_len, GenericCANMessage {
             id: CANId { device_type: id.device_type, manufacturer: id.manufacturer, api_class: fragment_api_class, api_index: fragment_api_index, device_id: id.device_id },
-            payload: GenericCANPayload { payload_len: (buffer.len() - 3) as u8, payload: buffer[3..].to_vec() }
+            payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer[3..].to_vec()) }
           })
         },
-        seq => CANMessage::Fragment(x, GenericCANPayload { payload_len: buffer.len() as u8, payload: buffer.to_vec() })
+        _seq => CANMessage::Fragment(x, GenericCANPayload { payload: LengthTaggedVec::new(buffer.to_vec()) })
       },
       _ => {
         // It's part of a normal message
-        let manufacturer_msg = ManufacturerMessage::read(BitSlice::from_slice(buffer), (id.device_type, id.manufacturer, id.api_class, id.api_index));
+        let manufacturer_msg = ManufacturerMessage::read(&mut BitView::new(buffer), crate::MessageContext { device_type: id.device_type, manufacturer: id.manufacturer, api_class: id.api_class, api_index: id.api_index, device_id: id.device_id });
         match manufacturer_msg {
-          Ok(manufacturer_msg) => CANMessage::Message(Message::new(id.device_id, manufacturer_msg.1)),
-          Err(_) => CANMessage::Unknown(GenericCANMessage { 
+          Some(manufacturer_msg) => CANMessage::Message(Message::new(id.device_id, manufacturer_msg)),
+          None => CANMessage::Unknown(GenericCANMessage { 
             id,
             payload: GenericCANPayload {
-              payload_len: buffer.len() as u8,
-              payload: buffer.to_vec() 
+              payload: LengthTaggedVec::new(buffer.to_vec())
             }
           })
         }
@@ -96,20 +92,18 @@ pub struct CANId {
   pub device_id: u8,
 }
 
-impl DekuWrite for CANId {
-    fn write(&self, output: &mut deku::bitvec::BitVec<u8, deku::bitvec::Msb0>, ctx: ()) -> Result<(), DekuError> {
-      Into::<u32>::into(self.clone()).write(output, ctx)
-    }
-}
+impl BinMarshal<()> for CANId {
+  type Context = ();
 
-impl<'a> DekuRead<'a> for CANId {
-    fn read(input: &'a deku::bitvec::BitSlice<u8, deku::bitvec::Msb0>, ctx: ()) -> Result<(&'a deku::bitvec::BitSlice<u8, deku::bitvec::Msb0>, Self), DekuError>
-    where
-      Self: Sized
-    {
-      let num = u32::read(input, ctx)?;
-      Ok((num.0, CANId::from(num.1)))
-    }
+  fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
+    u32::write(self.into(), writer, ctx)
+  }
+
+  fn read(view: &mut binmarshal::rw::BitView<'_>, ctx: ()) -> Option<Self> {
+    u32::read(view, ctx).map(Into::into)
+  }
+
+  fn update<'a>(&'a mut self, _ctx: <() as binmarshal::BinmarshalContext>::MutableComplement<'a>) { }
 }
 
 impl From<u32> for CANId {
@@ -134,7 +128,7 @@ impl Into<u32> for CANId {
   }
 }
 
-#[derive(Clone, DekuRead, DekuWrite)]
+#[derive(Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANMessage {
@@ -142,16 +136,12 @@ pub struct GenericCANMessage {
   pub payload: GenericCANPayload
 }
 
-#[derive(Clone, DekuRead, DekuWrite)]
+#[derive(Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANPayload {
-  #[deku(update = "self.payload.len()")]
-  pub payload_len: u8,
-  #[deku(count = "payload_len")]
-  pub payload: Vec<u8>
+  pub payload: LengthTaggedVec<u8, u8>
 }
-
 pub struct FragmentMetadata {
   last_update: i64,
   id: CANId,
@@ -180,7 +170,7 @@ impl FragmentReassembler {
           len,
           payload: Vec::with_capacity(len as usize)
         };
-        meta.payload.extend(frag.payload.payload);
+        meta.payload.extend(frag.payload.payload.0);
         self.messages.insert(id, meta);
         None
       },
@@ -189,7 +179,7 @@ impl FragmentReassembler {
           let meta = self.messages.get_mut(&id);
           if let Some(meta) = meta {
             meta.last_update = now;
-            meta.payload.extend(payload.payload);
+            meta.payload.extend(payload.payload.0);
             meta.payload.len() >= meta.len as usize
           } else { false }
         };
@@ -211,10 +201,18 @@ impl FragmentReassembler {
     return ret;
   }
 
-  pub fn maybe_split(message: Message, fragment_id: u8) -> Result<smallvec::SmallVec<[UnparsedCANMessage; 4]>, DekuError> {
-    let mut payload = bitvec![u8, Msb0;];
-    message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index))?;
-    let payload_slice = payload.as_raw_slice();
+  pub fn maybe_split(message: Message, fragment_id: u8) -> Option<smallvec::SmallVec<[UnparsedCANMessage; 4]>> {
+    let mut payload = [0u8; 256];
+    let mut writer = BufferBitWriter::new(&mut payload);
+    let success = message.msg.write(&mut writer, crate::MessageContext { device_type: message.device_type, manufacturer: message.manufacturer, api_class: message.api_class, api_index: message.api_index, device_id: message.device_id });
+    if !success {
+      return None;
+    }
+
+    let payload_slice = writer.slice();
+    // let mut payload = bitvec![u8, Msb0;];
+    // message.msg.write(&mut payload, (message.device_type, message.manufacturer, message.api_class, message.api_index))?;
+    // let payload_slice = payload.as_raw_slice();
 
     if payload_slice.len() > 8 as usize {
       // Requires split
@@ -264,7 +262,7 @@ impl FragmentReassembler {
         i += 1;
       }
 
-      Ok(msgs)
+      Some(msgs)
     } else {
       // Can send straight up
       let len = payload_slice.len();
@@ -274,7 +272,7 @@ impl FragmentReassembler {
         buf[i] = payload_slice[i];
       }
 
-      Ok(smallvec::smallvec![UnparsedCANMessage {
+      Some(smallvec::smallvec![UnparsedCANMessage {
         id: CANId {
           device_type: message.device_type,
           manufacturer: message.manufacturer,

@@ -4,15 +4,15 @@ version = "0.1.3"
 edition = "2021"
 
 [dependencies]
+binmarshal = { version = "^0.1.1", default-features = false }
 bxcan = "0.6.0"
-deku = { version = "0.16.0", default-features = false, features = ["alloc", "const_generics"] }
 schemars = { version = "0.8.12", optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 smallvec = "1.10.0"
 strum_macros = "0.24.3"
 
 [features]
-std = []
-serde = ["dep:serde"]
-schema = ["dep:schemars"]
+std = ["binmarshal/std"]
+serde = ["dep:serde", "binmarshal/serde"]
+schema = ["dep:schemars", "binmarshal/schema"]
 default = ["std", "serde", "schema"]
