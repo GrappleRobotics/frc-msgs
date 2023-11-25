@@ -1,4 +1,5 @@
 use crate::MessageContext;
+use alloc::string::String;
 use binmarshal::BinMarshal;
 
 #[derive(Clone, BinMarshal, PartialEq, Eq)]
