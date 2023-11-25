@@ -1,6 +1,8 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+
 use binmarshal::{BinMarshal, LengthTaggedVec, rw::{BitView, BufferBitWriter, BitWriter}};
 
 use crate::{Message, ManufacturerMessage};
