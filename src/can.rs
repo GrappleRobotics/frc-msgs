@@ -1,6 +1,5 @@
 extern crate alloc;
 
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 
 use binmarshal::{BinMarshal, LengthTaggedVec, rw::{BitView, BufferBitWriter, BitWriter}};
@@ -152,13 +151,13 @@ pub struct FragmentMetadata {
 }
 
 pub struct FragmentReassembler {
-  messages: BTreeMap<u8, FragmentMetadata>,
+  messages: Vec<(u8, FragmentMetadata)>,
   age_off: i64
 }
 
 impl FragmentReassembler {
   pub fn new(age_off: i64) -> Self {
-    Self { age_off, messages: BTreeMap::new() }
+    Self { age_off, messages: Vec::new() }
   }
 
   pub fn process(&mut self, now: i64, raw_len: u8, message: CANMessage) -> Option<(u8, CANMessage)> {
@@ -173,22 +172,32 @@ impl FragmentReassembler {
           payload: Vec::with_capacity(len as usize)
         };
         meta.payload.extend(frag.payload.payload.0);
-        self.messages.insert(id, meta);
+        // self.messages.insert(id, meta);
+        for (i, m) in self.messages.iter_mut() {
+          if *i == id {
+            *m = meta;
+            return None
+          }
+        }
+        self.messages.push((id, meta));
         None
       },
       CANMessage::Fragment(id, payload) => {
-        let is_done = {
-          let meta = self.messages.get_mut(&id);
-          if let Some(meta) = meta {
+        let mut is_done = false;
+        for (i, meta) in self.messages.iter_mut() {
+          if *i == id {
             meta.last_update = now;
             meta.payload.extend(payload.payload.0);
-            meta.payload.len() >= meta.len as usize
-          } else { false }
-        };
+            is_done = meta.payload.len() >= meta.len as usize;
+            break;
+          }
+        }
 
         if is_done {
           // Reassemble
-          let meta = self.messages.remove(&id).unwrap();
+          let idx = self.messages.iter().position(|x| x.0 == id).unwrap();
+          let meta = self.messages.remove(idx).1;
+
           let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
           Some((meta.len + 3, decoded))
         } else {
@@ -198,7 +207,7 @@ impl FragmentReassembler {
     };
 
     // Get rid of anything that's aged off
-    self.messages.retain(|_, v| (now - v.last_update) <= self.age_off);
+    self.messages.retain(|(_, v)| (now - v.last_update) <= self.age_off);
 
     return ret;
   }
