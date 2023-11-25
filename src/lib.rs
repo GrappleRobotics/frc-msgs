@@ -7,6 +7,8 @@ pub mod can;
 pub mod grapple;
 pub mod ni;
 
+pub use binmarshal;
+
 use binmarshal::{BinMarshal, Context};
 use grapple::MANUFACTURER_GRAPPLE;
 use grapple::GrappleDeviceMessage;
