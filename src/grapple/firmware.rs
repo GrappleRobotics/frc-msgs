@@ -1,7 +1,7 @@
 use crate::MessageContext;
 use binmarshal::{BinMarshal, LengthTaggedVec};
 
-#[derive(Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageContext, tag = "ctx.api_class")]

@@ -27,7 +27,7 @@ pub struct MessageContext {
   device_id: u8,
 }
 
-#[derive(Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Message {
@@ -59,7 +59,7 @@ impl Message {
   }
 }
 
-#[derive(Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageContext, tag = "ctx.manufacturer")]

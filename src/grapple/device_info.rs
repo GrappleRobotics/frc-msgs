@@ -2,7 +2,7 @@ use crate::MessageContext;
 use alloc::string::String;
 use binmarshal::BinMarshal;
 
-#[derive(Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = u8)]
@@ -13,7 +13,7 @@ pub enum GrappleModelId {
   SpiderLan,
 }
 
-#[derive(Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageContext, tag = "ctx.api_index")]

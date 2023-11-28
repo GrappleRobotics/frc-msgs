@@ -4,7 +4,7 @@ use crate::Message;
 
 use crate::can::UnparsedCANMessage;
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 #[marshal(tag_type = u8)]
 pub enum GrappleTCPMessage {
   #[marshal(tag = "0")]

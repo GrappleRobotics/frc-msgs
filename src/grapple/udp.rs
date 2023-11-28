@@ -2,7 +2,7 @@ use binmarshal::BinMarshal;
 
 use super::device_info::GrappleModelId;
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 #[marshal(tag_type = u8)]
 pub enum GrappleUDPMessage {
   #[marshal(tag = "0")]

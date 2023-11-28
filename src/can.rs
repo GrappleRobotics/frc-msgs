@@ -9,7 +9,7 @@ use crate::{Message, ManufacturerMessage};
 const GRAPPLE_API_CLASS_FRAGMENT: u8 = 0b100000;
 const GRAPPLE_API_INDEX_FRAGMENT_START: u8 = 0b0;
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 pub struct UnparsedCANMessage {
   pub id: CANId,
   pub payload: [u8; 8],
@@ -28,7 +28,7 @@ impl UnparsedCANMessage {
   }
 }
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = u8)]
@@ -82,7 +82,7 @@ impl CANMessage {
   }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CANId {
@@ -129,7 +129,7 @@ impl Into<u32> for CANId {
   }
 }
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANMessage {
@@ -137,7 +137,7 @@ pub struct GenericCANMessage {
   pub payload: GenericCANPayload
 }
 
-#[derive(Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANPayload {
