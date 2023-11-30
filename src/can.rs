@@ -195,7 +195,7 @@ impl FragmentReassembler {
 
         if is_done {
           // Reassemble
-          let idx = self.messages.iter().position(|x| x.0 == id).unwrap();
+          let idx = self.messages.iter().position(|x| x.0 == payload.id.device_id && x.1 == id).unwrap();
           let meta = self.messages.remove(idx).2;
 
           let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
