@@ -1,6 +1,8 @@
 extern crate alloc;
 
-use alloc::vec::Vec;
+use core::cmp::Reverse;
+
+use alloc::{vec::Vec, collections::BinaryHeap};
 
 use binmarshal::{BinMarshal, LengthTaggedVec, rw::{BitView, BufferBitWriter, BitWriter}};
 
@@ -28,7 +30,7 @@ impl UnparsedCANMessage {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = u8)]
@@ -82,7 +84,7 @@ impl CANMessage {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct CANId {
@@ -129,7 +131,7 @@ impl Into<u32> for CANId {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANMessage {
@@ -137,21 +139,56 @@ pub struct GenericCANMessage {
   pub payload: GenericCANPayload
 }
 
-#[derive(Debug, Clone, BinMarshal)]
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct GenericCANPayload {
   pub payload: LengthTaggedVec<u8, u8>
 }
-pub struct FragmentMetadata {
-  last_update: i64,
-  id: CANId,
-  len: u8,
-  payload: Vec<u8>
+
+pub struct FragmentData {
+  seq: u8,
+  payload: Vec<u8>,
+  target_frame_id: Option<CANId>,
+  total_len: Option<u8>
+}
+
+impl PartialEq for FragmentData {
+  fn eq(&self, other: &Self) -> bool {
+    self.seq == other.seq
+  }
+}
+
+impl Eq for FragmentData {}
+
+impl PartialOrd for FragmentData {
+  fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+    self.seq.partial_cmp(&other.seq)
+  }
+}
+
+impl Ord for FragmentData {
+  fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+    self.seq.cmp(&other.seq)
+  }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct FragmentSetKey {
+  device_id: u8,
+  device_type: u8,
+  manufacturer: u8,
+  fragment_idx: u8,
+}
+
+pub struct Fragments {
+  key: FragmentSetKey,
+  data: BinaryHeap<Reverse<FragmentData>>,
+  last_seen: i64,
 }
 
 pub struct FragmentReassembler {
-  messages: Vec<(u8, u8, FragmentMetadata)>,
+  messages: Vec<Fragments>,
   age_off: i64
 }
 
@@ -160,56 +197,74 @@ impl FragmentReassembler {
     Self { age_off, messages: Vec::new() }
   }
 
+  fn add_data(&mut self, now: i64, key: FragmentSetKey, fd: FragmentData) -> Option<(u8, CANMessage)> {
+    self.messages.retain(|frags| (now - frags.last_seen) <= self.age_off);
+
+    let fragments = match self.messages.iter_mut().find(|x| x.key == key) {
+      Some(frags) => frags,
+      None => {
+        self.messages.push(Fragments { key, data: BinaryHeap::with_capacity(4), last_seen: now });
+        let n = self.messages.len();
+        self.messages.get_mut(n - 1).unwrap()
+      },
+    };
+
+    fragments.data.push(Reverse(fd));
+
+    if fragments.data.peek().unwrap().0.seq == 0 {
+      let total_count = fragments.data.peek().unwrap().0.total_len.unwrap() as usize;
+      let n_bytes_seen = fragments.data.iter().map(|x| x.0.payload.len()).reduce(|a, b| a + b).unwrap_or(0);
+
+      if n_bytes_seen >= total_count {
+        // This fragment is complete
+        let first = fragments.data.pop().unwrap().0;
+        let mut data = Vec::with_capacity(n_bytes_seen);
+        data.extend(first.payload);
+
+        for fd in fragments.data.drain() {
+          data.extend(fd.0.payload);
+        }
+
+        Some((n_bytes_seen as u8, CANMessage::decode(first.target_frame_id.unwrap(), &data[..])))
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
+
   pub fn process(&mut self, now: i64, raw_len: u8, message: CANMessage) -> Option<(u8, CANMessage)> {
     let ret = match message {
       CANMessage::Message(_) => Some((raw_len, message)),
       CANMessage::Unknown(_) => Some((raw_len, message)),
       CANMessage::FragmentStart(id, len, frag) => {
-        let mut meta = FragmentMetadata {
-          last_update: now,
-          id: frag.id.clone(),
-          len,
-          payload: vec![0; len as usize]
-        };
-        meta.payload[0..5].copy_from_slice(&frag.payload.payload.0);
-
-        for (device_id, i, m) in self.messages.iter_mut() {
-          if *device_id == frag.id.device_id && *i == id {
-            *m = meta;
-            return None
-          }
-        }
-        self.messages.push((frag.id.device_id, id, meta));
-        None
+        self.add_data(now, FragmentSetKey {
+          device_id: frag.id.device_id,
+          device_type: frag.id.device_type,
+          manufacturer: frag.id.manufacturer,
+          fragment_idx: id
+        }, FragmentData {
+          seq: 0,
+          payload: frag.payload.payload.0,
+          target_frame_id: Some(frag.id),
+          total_len: Some(len)
+        })
       },
       CANMessage::Fragment(id, seq, payload) => {
-        let mut is_done = false;
-        for (device_id, i, meta) in self.messages.iter_mut() {
-          if *device_id == payload.id.device_id && *i == id {
-            meta.last_update = now;
-            // meta.payload.extend(payload.payload.payload.0);
-            meta.payload[(5 + seq as usize - 1)..(5+seq as usize-1+payload.payload.payload.len())].copy_from_slice(&payload.payload.payload.0);
-
-            is_done = meta.payload.len() >= meta.len as usize;
-            break;
-          }
-        }
-
-        if is_done {
-          // Reassemble
-          let idx = self.messages.iter().position(|x| x.0 == payload.id.device_id && x.1 == id).unwrap();
-          let meta = self.messages.remove(idx).2;
-
-          let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
-          Some((meta.len + 3, decoded))
-        } else {
-          None
-        }
+        self.add_data(now, FragmentSetKey {
+          device_id: payload.id.device_id,
+          device_type: payload.id.device_type,
+          manufacturer: payload.id.manufacturer,
+          fragment_idx: id
+        }, FragmentData {
+          seq,
+          payload: payload.payload.payload.0,
+          target_frame_id: None,
+          total_len: None
+        })
       },
     };
-
-    // Get rid of anything that's aged off
-    self.messages.retain(|(_, _, v)| (now - v.last_update) <= self.age_off);
 
     return ret;
   }
@@ -298,5 +353,40 @@ impl FragmentReassembler {
       }])
     }
 
+  }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::can::CANMessage;
+    use crate::{Message, DEVICE_ID_BROADCAST};
+
+    use super::FragmentReassembler;
+
+    use rand::thread_rng;
+    use rand::seq::SliceRandom;
+
+  #[test]
+  fn test_reassemble() {
+    let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
+      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::EnumerateResponse {
+        model_id: crate::grapple::device_info::GrappleModelId::LaserCan,
+        serial: 0xDEADBEEF,
+        is_dfu: false,
+        is_dfu_in_progress: false,
+        version: "0.1.0".to_owned(), name: "LaserCAN".to_owned() })
+    )));
+
+    let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
+    let mut msgs = msgs.unwrap().to_vec();
+    msgs.shuffle(&mut thread_rng());
+
+    let mut reassembler = FragmentReassembler::new(200);
+    let mut out = None;
+    for msg in msgs {
+      out = reassembler.process(0, msg.len, CANMessage::decode(msg.id, &msg.payload[0..msg.len as usize]));
+    }
+
+    assert_eq!(out.map(|(_, msg)| msg), Some(CANMessage::Message(msg)));
   }
 }

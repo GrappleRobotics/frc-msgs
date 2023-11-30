@@ -16,3 +16,6 @@ std = ["binmarshal/std"]
 serde = ["dep:serde", "binmarshal/serde"]
 schema = ["dep:schemars", "binmarshal/schema"]
 default = ["std", "serde", "schema"]
+
+[dev-dependencies]
+rand = "0.8.5"
