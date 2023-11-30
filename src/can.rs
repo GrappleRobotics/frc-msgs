@@ -40,7 +40,7 @@ pub enum CANMessage {
   #[marshal(tag = "2")]
   FragmentStart(u8, u8, GenericCANMessage),     // (identifier, fragment_len, message)
   #[marshal(tag = "3")]
-  Fragment(u8, GenericCANPayload),          // (identifier, message)
+  Fragment(u8, GenericCANMessage),          // (identifier, message)
 }
 
 impl From<UnparsedCANMessage> for CANMessage {
@@ -63,7 +63,7 @@ impl CANMessage {
             payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer[3..].to_vec()) }
           })
         },
-        _seq => CANMessage::Fragment(x, GenericCANPayload { payload: LengthTaggedVec::new(buffer.to_vec()) })
+        _seq => CANMessage::Fragment(x, GenericCANMessage { id: id.clone(), payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer.to_vec()) } })
       },
       _ => {
         // It's part of a normal message
@@ -151,7 +151,7 @@ pub struct FragmentMetadata {
 }
 
 pub struct FragmentReassembler {
-  messages: Vec<(u8, FragmentMetadata)>,
+  messages: Vec<(u8, u8, FragmentMetadata)>,
   age_off: i64
 }
 
@@ -167,27 +167,27 @@ impl FragmentReassembler {
       CANMessage::FragmentStart(id, len, frag) => {
         let mut meta = FragmentMetadata {
           last_update: now,
-          id: frag.id,
+          id: frag.id.clone(),
           len,
           payload: Vec::with_capacity(len as usize)
         };
         meta.payload.extend(frag.payload.payload.0);
         // self.messages.insert(id, meta);
-        for (i, m) in self.messages.iter_mut() {
-          if *i == id {
+        for (device_id, i, m) in self.messages.iter_mut() {
+          if *device_id == frag.id.device_id && *i == id {
             *m = meta;
             return None
           }
         }
-        self.messages.push((id, meta));
+        self.messages.push((frag.id.device_id, id, meta));
         None
       },
       CANMessage::Fragment(id, payload) => {
         let mut is_done = false;
-        for (i, meta) in self.messages.iter_mut() {
-          if *i == id {
+        for (device_id, i, meta) in self.messages.iter_mut() {
+          if *device_id == payload.id.device_id && *i == id {
             meta.last_update = now;
-            meta.payload.extend(payload.payload.0);
+            meta.payload.extend(payload.payload.payload.0);
             is_done = meta.payload.len() >= meta.len as usize;
             break;
           }
@@ -196,7 +196,7 @@ impl FragmentReassembler {
         if is_done {
           // Reassemble
           let idx = self.messages.iter().position(|x| x.0 == id).unwrap();
-          let meta = self.messages.remove(idx).1;
+          let meta = self.messages.remove(idx).2;
 
           let decoded = CANMessage::decode(meta.id.clone(), &meta.payload[0..meta.len as usize]);
           Some((meta.len + 3, decoded))
@@ -207,7 +207,7 @@ impl FragmentReassembler {
     };
 
     // Get rid of anything that's aged off
-    self.messages.retain(|(_, v)| (now - v.last_update) <= self.age_off);
+    self.messages.retain(|(_, _, v)| (now - v.last_update) <= self.age_off);
 
     return ret;
   }

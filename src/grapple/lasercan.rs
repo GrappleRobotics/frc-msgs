@@ -1,5 +1,5 @@
 use crate::MessageContext;
-use binmarshal::{BinMarshal, Proxy};
+use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
 #[derive(Proxy)]
@@ -9,11 +9,11 @@ impl BinMarshal<()> for LaserCanRoiU4 {
   type Context = ();
 
   fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
-    (self.0 - 1).write(writer, ctx)
+    (self.0 - 1).write(writer, BitSpecification::<4>)
   }
 
   fn read(view: &mut binmarshal::rw::BitView<'_>, ctx: ()) -> Option<Self> {
-    u8::read(view, ctx).map(|x| Self(x + 1))
+    u8::read(view, BitSpecification::<4>).map(|x| Self(x + 1))
   }
 
   fn update<'a>(&'a mut self, _ctx: <() as binmarshal::BinmarshalContext>::MutableComplement<'a>) { }
