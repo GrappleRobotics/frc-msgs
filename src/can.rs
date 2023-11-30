@@ -40,7 +40,7 @@ pub enum CANMessage {
   #[marshal(tag = "2")]
   FragmentStart(u8, u8, GenericCANMessage),     // (identifier, fragment_len, message)
   #[marshal(tag = "3")]
-  Fragment(u8, GenericCANMessage),          // (identifier, message)
+  Fragment(u8, u8, GenericCANMessage),          // (identifier, index, message)
 }
 
 impl From<UnparsedCANMessage> for CANMessage {
@@ -63,7 +63,7 @@ impl CANMessage {
             payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer[3..].to_vec()) }
           })
         },
-        _seq => CANMessage::Fragment(x, GenericCANMessage { id: id.clone(), payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer.to_vec()) } })
+        seq => CANMessage::Fragment(x, seq, GenericCANMessage { id: id.clone(), payload: GenericCANPayload { payload: LengthTaggedVec::new(buffer.to_vec()) } })
       },
       _ => {
         // It's part of a normal message
@@ -169,10 +169,10 @@ impl FragmentReassembler {
           last_update: now,
           id: frag.id.clone(),
           len,
-          payload: Vec::with_capacity(len as usize)
+          payload: vec![0; len as usize]
         };
-        meta.payload.extend(frag.payload.payload.0);
-        // self.messages.insert(id, meta);
+        meta.payload[0..5].copy_from_slice(&frag.payload.payload.0);
+
         for (device_id, i, m) in self.messages.iter_mut() {
           if *device_id == frag.id.device_id && *i == id {
             *m = meta;
@@ -182,12 +182,14 @@ impl FragmentReassembler {
         self.messages.push((frag.id.device_id, id, meta));
         None
       },
-      CANMessage::Fragment(id, payload) => {
+      CANMessage::Fragment(id, seq, payload) => {
         let mut is_done = false;
         for (device_id, i, meta) in self.messages.iter_mut() {
           if *device_id == payload.id.device_id && *i == id {
             meta.last_update = now;
-            meta.payload.extend(payload.payload.payload.0);
+            // meta.payload.extend(payload.payload.payload.0);
+            meta.payload[(5 + seq as usize - 1)..(5+seq as usize-1+payload.payload.payload.len())].copy_from_slice(&payload.payload.payload.0);
+
             is_done = meta.payload.len() >= meta.len as usize;
             break;
           }
