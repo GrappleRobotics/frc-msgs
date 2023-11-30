@@ -1,18 +1,32 @@
 use crate::MessageContext;
-use binmarshal::BinMarshal;
+use binmarshal::{BinMarshal, Proxy};
+use core::ops::{Deref, DerefMut};
+
+#[derive(Proxy)]
+pub struct LaserCanRoiU4(pub u8);
+
+impl BinMarshal<()> for LaserCanRoiU4 {
+  type Context = ();
+
+  fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
+    (self.0 - 1).write(writer, ctx)
+  }
+
+  fn read(view: &mut binmarshal::rw::BitView<'_>, ctx: ()) -> Option<Self> {
+    u8::read(view, ctx).map(|x| Self(x + 1))
+  }
+
+  fn update<'a>(&'a mut self, _ctx: <() as binmarshal::BinmarshalContext>::MutableComplement<'a>) { }
+}
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct LaserCanRoi {
-  #[marshal(bits = 4)]
-  pub x: u8,
-  #[marshal(bits = 4)]
-  pub y: u8,
-  #[marshal(bits = 4)]
-  pub w: u8,
-  #[marshal(bits = 4)]
-  pub h: u8
+  pub x: LaserCanRoiU4,
+  pub y: LaserCanRoiU4,
+  pub w: LaserCanRoiU4,
+  pub h: LaserCanRoiU4
 }
 
 
