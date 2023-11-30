@@ -34,14 +34,14 @@ pub struct LaserCanRoi {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct LaserCanStatusFrame {
-  status: u8,
-  distance_mm: u16,
-  ambient: u16,
+  pub status: u8,
+  pub distance_mm: u16,
+  pub ambient: u16,
   #[marshal(bits = 1)]
-  long: bool,
+  pub long: bool,
   #[marshal(bits = 7)]
-  budget_ms: u8,
-  roi: LaserCanRoi
+  pub budget_ms: u8,
+  pub roi: LaserCanRoi
 }
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
