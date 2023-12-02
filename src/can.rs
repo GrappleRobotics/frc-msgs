@@ -221,8 +221,8 @@ impl FragmentReassembler {
         let mut data = Vec::with_capacity(n_bytes_seen);
         data.extend(first.payload);
 
-        for fd in fragments.data.drain() {
-          data.extend(fd.0.payload);
+        while !fragments.data.is_empty() {
+          data.extend(fragments.data.pop().unwrap().0.payload);
         }
 
         Some((n_bytes_seen as u8, CANMessage::decode(first.target_frame_id.unwrap(), &data[..])))
@@ -371,7 +371,7 @@ mod test {
     let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
       crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
         serial: 0xDEADBEEF,
-        name: "LaserCAN".to_owned() })
+        name: "Some Really Really Long Name".to_owned() })
     )));
 
     let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
