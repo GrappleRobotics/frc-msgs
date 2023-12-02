@@ -291,7 +291,7 @@ impl FragmentReassembler {
         id: CANId {
           device_type: message.device_type,
           manufacturer: message.manufacturer,
-          api_class: fragment_id | GRAPPLE_API_CLASS_FRAGMENT,
+          api_class: (fragment_id & 0b11111) | GRAPPLE_API_CLASS_FRAGMENT,
           api_index: GRAPPLE_API_INDEX_FRAGMENT_START,
           device_id: message.device_id
         },
@@ -318,7 +318,7 @@ impl FragmentReassembler {
           id: CANId {
             device_type: message.device_type,
             manufacturer: message.manufacturer,
-            api_class: fragment_id | GRAPPLE_API_CLASS_FRAGMENT,
+            api_class: (fragment_id & 0b11111) | GRAPPLE_API_CLASS_FRAGMENT,
             api_index: i,
             device_id: message.device_id
           },
@@ -369,12 +369,9 @@ mod test {
   #[test]
   fn test_reassemble() {
     let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
-      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::EnumerateResponse {
-        model_id: crate::grapple::device_info::GrappleModelId::LaserCan,
+      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
         serial: 0xDEADBEEF,
-        is_dfu: false,
-        is_dfu_in_progress: false,
-        version: "0.1.0".to_owned(), name: "LaserCAN".to_owned() })
+        name: "LaserCAN".to_owned() })
     )));
 
     let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
@@ -382,6 +379,24 @@ mod test {
     msgs.shuffle(&mut thread_rng());
 
     let mut reassembler = FragmentReassembler::new(200);
+
+    let mut out = None;
+    for msg in msgs {
+      out = reassembler.process(0, msg.len, CANMessage::decode(msg.id, &msg.payload[0..msg.len as usize]));
+    }
+
+    assert_eq!(out.map(|(_, msg)| msg), Some(CANMessage::Message(msg.clone())));
+
+    let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
+      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
+        serial: 0xDEADBEEF,
+        name: "Something Else".to_owned() })
+    )));
+
+    let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
+    let mut msgs = msgs.unwrap().to_vec();
+    msgs.shuffle(&mut thread_rng());
+
     let mut out = None;
     for msg in msgs {
       out = reassembler.process(0, msg.len, CANMessage::decode(msg.id, &msg.payload[0..msg.len as usize]));
