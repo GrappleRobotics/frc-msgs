@@ -184,7 +184,7 @@ impl FragmentReassembler {
     let fragments_idx = match self.messages.iter().position(|x| x.key == key) {
       Some(idx) => idx,
       None => {
-        self.messages.push(Fragments { key, data: vec![None; 4], last_seen: now });
+        self.messages.push(Fragments { key, data: alloc::vec![None; 4], last_seen: now });
         let n = self.messages.len();
         n - 1
       },
