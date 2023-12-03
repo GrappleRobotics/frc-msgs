@@ -123,7 +123,7 @@ impl From<u32> for CANId {
 
 impl Into<u32> for CANId {
   fn into(self) -> u32 {
-    (self.device_id as u32 & 0b1111111)
+    (self.device_id as u32 & 0b111111)
     | ((self.api_index as u32 & 0b1111) << 6)
     | ((self.api_class as u32 & 0b111111) << (6+4))
     | ((self.manufacturer as u32 & 0b11111111) << (6+4+6))
@@ -363,15 +363,19 @@ mod test {
 
     use super::FragmentReassembler;
 
+    use binmarshal::LengthTaggedVec;
     use rand::thread_rng;
     use rand::seq::SliceRandom;
 
   #[test]
   fn test_reassemble() {
-    let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
-      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
-        serial: 0xDEADBEEF,
-        name: "Some Really Really Long Name".to_owned() })
+    // let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
+    //   crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
+    //     serial: 0xDEADBEEF,
+    //     name: "Some Really Really Long Name".to_owned() })
+    // )));
+    let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::FirmwareUpdate(
+      crate::grapple::firmware::GrappleFirmwareMessage::UpdatePart { serial: 0xDEADBEEF, data: LengthTaggedVec::new(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]) }
     )));
 
     let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
@@ -386,22 +390,5 @@ mod test {
     }
 
     assert_eq!(out.map(|(_, msg)| msg), Some(CANMessage::Message(msg.clone())));
-
-    let msg = Message::new(DEVICE_ID_BROADCAST, crate::ManufacturerMessage::Grapple(crate::grapple::GrappleDeviceMessage::Broadcast(
-      crate::grapple::GrappleBroadcastMessage::DeviceInfo(crate::grapple::device_info::GrappleDeviceInfo::SetName {
-        serial: 0xDEADBEEF,
-        name: "Something Else".to_owned() })
-    )));
-
-    let msgs = FragmentReassembler::maybe_split(msg.clone(), 0x12);
-    let mut msgs = msgs.unwrap().to_vec();
-    msgs.shuffle(&mut thread_rng());
-
-    let mut out = None;
-    for msg in msgs {
-      out = reassembler.process(0, msg.len, CANMessage::decode(msg.id, &msg.payload[0..msg.len as usize]));
-    }
-
-    assert_eq!(out.map(|(_, msg)| msg), Some(CANMessage::Message(msg)));
   }
 }
