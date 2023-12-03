@@ -57,5 +57,11 @@ pub enum GrappleDeviceInfo {
   SetId {
     serial: u32,
     new_id: u8
-  }
+  },
+
+  #[marshal(tag = "6")]
+  ArbitrationRequest,
+
+  #[marshal(tag = "7")]
+  ArbitrationReject,
 }
