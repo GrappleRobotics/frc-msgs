@@ -9,12 +9,9 @@ pub enum GrappleFirmwareMessage {
   #[marshal(tag = "0")]
   StartFieldUpgrade { serial: u32 },
   #[marshal(tag = "1")]
-  UpdatePart {
-    serial: u32,
-    data: LengthTaggedVec<u8, u8>
-  },
+  UpdatePart([u8; 8]),
   #[marshal(tag = "2")]
-  UpdatePartAck { serial: u32 },
+  UpdatePartAck,
   #[marshal(tag = "3")]
-  UpdateDone { serial: u32 }
+  UpdateDone
 }
