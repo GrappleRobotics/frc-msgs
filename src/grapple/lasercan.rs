@@ -3,6 +3,7 @@ use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
 #[derive(Proxy)]
+#[repr(transparent)]
 pub struct LaserCanRoiU4(pub u8);
 
 impl BinMarshal<()> for LaserCanRoiU4 {
@@ -22,6 +23,7 @@ impl BinMarshal<()> for LaserCanRoiU4 {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[repr(C)]
 pub struct LaserCanRoi {
   pub x: LaserCanRoiU4,
   pub y: LaserCanRoiU4,
@@ -33,6 +35,7 @@ pub struct LaserCanRoi {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[repr(C)]
 pub struct LaserCanStatusFrame {
   pub status: u8,
   pub distance_mm: u16,
@@ -48,6 +51,7 @@ pub struct LaserCanStatusFrame {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageContext, tag = "ctx.api_class")]
+#[repr(C)]
 pub enum LaserCanMessage {
   #[marshal(tag = "0")]
   Status(LaserCanStatusFrame),

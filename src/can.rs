@@ -87,6 +87,7 @@ impl CANMessage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[repr(C)]
 pub struct CANId {
   pub device_type: u8,
   pub manufacturer: u8,
