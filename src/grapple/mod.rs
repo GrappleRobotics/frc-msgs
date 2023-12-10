@@ -1,6 +1,6 @@
 use binmarshal::BinMarshal;
 
-use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, MessageContext};
+use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, MessageContext, Validate};
 use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage};
 
 pub mod device_info;
@@ -39,6 +39,16 @@ pub enum GrappleDeviceMessage {
   ),
 }
 
+impl Validate for GrappleDeviceMessage {
+  fn validate(&self) -> Result<(), &'static str> {
+    match self {
+      GrappleDeviceMessage::Broadcast(bc) => bc.validate(),
+      GrappleDeviceMessage::FirmwareUpdate(fw) => fw.validate(),
+      GrappleDeviceMessage::DistanceSensor(lc) => lc.validate(),
+    }
+  }
+}
+
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -49,4 +59,12 @@ pub enum GrappleBroadcastMessage {
     #[marshal(forward_ctx)]
     GrappleDeviceInfo
   )
+}
+
+impl Validate for GrappleBroadcastMessage {
+  fn validate(&self) -> Result<(), &'static str> {
+    match self {
+      GrappleBroadcastMessage::DeviceInfo(di) => di.validate(),
+    }
+  }
 }

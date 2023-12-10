@@ -1,4 +1,4 @@
-use crate::MessageContext;
+use crate::{MessageContext, Validate};
 use alloc::string::String;
 use binmarshal::BinMarshal;
 
@@ -64,4 +64,10 @@ pub enum GrappleDeviceInfo {
 
   #[marshal(tag = "7")]
   ArbitrationReject,
+}
+
+impl Validate for GrappleDeviceInfo {
+  fn validate(&self) -> Result<(), &'static str> {
+    Ok(())
+  }
 }

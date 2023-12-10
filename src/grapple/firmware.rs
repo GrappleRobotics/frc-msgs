@@ -1,5 +1,5 @@
-use crate::MessageContext;
-use binmarshal::{BinMarshal, LengthTaggedVec};
+use crate::{MessageContext, Validate};
+use binmarshal::BinMarshal;
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
@@ -14,4 +14,10 @@ pub enum GrappleFirmwareMessage {
   UpdatePartAck,
   #[marshal(tag = "3")]
   UpdateDone
+}
+
+impl Validate for GrappleFirmwareMessage {
+  fn validate(&self) -> Result<(), &'static str> {
+    Ok(())
+  }
 }

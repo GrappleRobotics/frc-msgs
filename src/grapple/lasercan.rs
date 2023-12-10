@@ -1,4 +1,4 @@
-use crate::MessageContext;
+use crate::{MessageContext, Validate};
 use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
@@ -31,6 +31,22 @@ pub struct LaserCanRoi {
   pub h: LaserCanRoiU4
 }
 
+impl Validate for LaserCanRoi {
+  fn validate(&self) -> Result<(), &'static str> {
+    if self.w.0 % 2 != 0 || self.h.0 % 2 != 0 { Err("LaserCanRoi: width and height must be even!")? };
+    let hw = self.w.0 / 2;
+    let hh = self.h.0 / 2;
+
+    let xmin = self.x.0 as i16 - hw as i16;
+    let xmax = self.x.0 as i16 + hw as i16;
+    let ymin = self.y.0 as i16 - hh as i16;
+    let ymax = self.y.0 as i16 + hh as i16;
+
+    if xmin < 0 || xmax >= 16 || ymin < 0 || ymax >= 16 { Err("LaserCanRoi: out of bounds!")? }
+
+    Ok(())
+  }
+}
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
@@ -67,4 +83,21 @@ pub enum LaserCanMessage {
   SetTimingBudget {
     budget: u8
   },
+}
+
+impl Validate for LaserCanMessage {
+  fn validate(&self) -> Result<(), &'static str> {
+    match self {
+      LaserCanMessage::Status(_) => Ok(()),
+      LaserCanMessage::SetRange { .. } => Ok(()),
+      LaserCanMessage::SetRoi { roi } => roi.validate(),
+      LaserCanMessage::SetTimingBudget { budget } => match budget {
+        20 => Ok(()),
+        33 => Ok(()),
+        50 => Ok(()),
+        100 => Ok(()),
+        _ => Err("LaserCanMessage: invalid timing budget!")
+      },
+    }
+  }
 }

@@ -59,6 +59,12 @@ impl Message {
   }
 }
 
+impl Validate for Message {
+  fn validate(&self) -> Result<(), &'static str> {
+    self.msg.validate()
+  }
+}
+
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -74,4 +80,17 @@ pub enum ManufacturerMessage {
     #[marshal(forward_ctx)]
     GrappleDeviceMessage
   )
+}
+
+impl Validate for ManufacturerMessage {
+  fn validate(&self) -> Result<(), &'static str> {
+    match self {
+      ManufacturerMessage::Ni(_) => Ok(()),
+      ManufacturerMessage::Grapple(grpl) => grpl.validate(),
+    }
+  }
+}
+
+pub trait Validate {
+  fn validate(&self) -> Result<(), &'static str>;
 }
