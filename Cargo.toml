@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 binmarshal = { version = "^0.1.1", default-features = false }
-bxcan = "0.6.0"
 schemars = { version = "0.8.12", optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 smallvec = "1.10.0"
