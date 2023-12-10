@@ -42,7 +42,7 @@ impl Validate for LaserCanRoi {
     let ymin = self.y.0 as i16 - hh as i16;
     let ymax = self.y.0 as i16 + hh as i16;
 
-    if xmin < 0 || xmax >= 16 || ymin < 0 || ymax >= 16 { Err("LaserCanRoi: out of bounds!")? }
+    if xmin < 0 || xmax > 16 || ymin < 0 || ymax > 16 { Err("LaserCanRoi: out of bounds!")? }
 
     Ok(())
   }
