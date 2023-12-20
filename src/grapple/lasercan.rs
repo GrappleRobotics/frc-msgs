@@ -83,6 +83,10 @@ pub enum LaserCanMessage {
   SetTimingBudget {
     budget: u8
   },
+  #[marshal(tag = "4")]
+  SetLedThreshold {
+    distance_mm: u16    // 0 for off
+  }
 }
 
 impl Validate for LaserCanMessage {
@@ -98,6 +102,10 @@ impl Validate for LaserCanMessage {
         100 => Ok(()),
         _ => Err("LaserCanMessage: invalid timing budget!")
       },
+      LaserCanMessage::SetLedThreshold { distance_mm } => match distance_mm {
+        0..=4000 => Ok(()),
+        _ => Err("LaserCanMessage: invalid LED threshold. Must be under 4m.")
+      }
     }
   }
 }
