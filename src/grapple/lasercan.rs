@@ -104,6 +104,7 @@ impl Validate for LaserCanMessage {
       },
       LaserCanMessage::SetLedThreshold { distance_mm } => match distance_mm {
         21..=4000 => Ok(()),
+        0 => Ok(()),      // Turned off
         _ => Err("LaserCanMessage: invalid LED threshold. Must be under >20, <4000mm.")
       }
     }
