@@ -103,7 +103,7 @@ impl Validate for LaserCanMessage {
         _ => Err("LaserCanMessage: invalid timing budget!")
       },
       LaserCanMessage::SetLedThreshold { distance_mm } => match distance_mm {
-        21..4000 => Ok(()),
+        21..=4000 => Ok(()),
         _ => Err("LaserCanMessage: invalid LED threshold. Must be under >20, <4000mm.")
       }
     }
