@@ -1,18 +1,18 @@
 extern crate alloc;
 use binmarshal::BinMarshal;
 
-use crate::MessageContext;
+use crate::MessageId;
 
 pub const MANUFACTURER_NI: u8 = 0x01;
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = MessageContext, tag = "ctx.device_type")]
+#[marshal(ctx = MessageId, tag = "ctx.device_type")]
 pub enum NiDeviceMessage {
   #[marshal(tag = "1")]
   RobotController(
-    #[marshal(forward_ctx)]
+    #[marshal(ctx = "forward")]
     NiRobotControllerMessage
   )
 }
@@ -20,11 +20,11 @@ pub enum NiDeviceMessage {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = MessageContext, tag = "ctx.api_class")]
+#[marshal(ctx = MessageId, tag = "ctx.api_class")]
 pub enum NiRobotControllerMessage {
   #[marshal(tag = "6")]
   Heartbeat(
-    #[marshal(forward_ctx)]
+    #[marshal(ctx = "forward")]
     NiRioHeartbeat
   )
 }
@@ -32,7 +32,7 @@ pub enum NiRobotControllerMessage {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = MessageContext, tag = "ctx.api_index")]
+#[marshal(ctx = MessageId, tag = "ctx.api_index")]
 pub enum NiRioHeartbeat {
   #[marshal(tag = "1")]
   Hearbeat(NiRioHearbeat1)

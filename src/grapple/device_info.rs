@@ -1,6 +1,8 @@
-use crate::{MessageContext, Validate};
+use crate::Validate;
 use alloc::string::String;
 use binmarshal::BinMarshal;
+
+use super::GrappleMessageId;
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
@@ -16,7 +18,7 @@ pub enum GrappleModelId {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = MessageContext, tag = "ctx.api_index")]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.api_index")]
 pub enum GrappleDeviceInfo {
   #[marshal(tag = "0")]
   EnumerateRequest,

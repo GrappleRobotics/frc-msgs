@@ -1,6 +1,8 @@
-use crate::{MessageContext, Validate};
+use crate::Validate;
 use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
+
+use super::GrappleMessageId;
 
 #[derive(Proxy)]
 #[repr(transparent)]
@@ -9,15 +11,15 @@ pub struct LaserCanRoiU4(pub u8);
 impl BinMarshal<()> for LaserCanRoiU4 {
   type Context = ();
 
-  fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
+  fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, _ctx: ()) -> bool {
     (self.0 - 1).write(writer, BitSpecification::<4>)
   }
 
-  fn read(view: &mut binmarshal::rw::BitView<'_>, ctx: ()) -> Option<Self> {
+  fn read(view: &mut binmarshal::rw::BitView<'_>, _ctx: ()) -> Option<Self> {
     u8::read(view, BitSpecification::<4>).map(|x| Self(x + 1))
   }
 
-  fn update<'a>(&'a mut self, _ctx: <() as binmarshal::BinmarshalContext>::MutableComplement<'a>) { }
+  fn update<'a>(&'a mut self, _ctx: &mut ()) { }
 }
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
@@ -66,7 +68,7 @@ pub struct LaserCanStatusFrame {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = MessageContext, tag = "ctx.api_class")]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
 #[repr(C)]
 pub enum LaserCanMessage {
   #[marshal(tag = "0")]
