@@ -2,7 +2,7 @@ use crate::Validate;
 use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
-use super::GrappleMessageId;
+use super::{GrappleMessageId, Request, GenericResult};
 
 #[derive(Proxy)]
 #[repr(transparent)]
@@ -74,21 +74,25 @@ pub enum LaserCanMessage {
   #[marshal(tag = "0")]
   Status(LaserCanStatusFrame),
   #[marshal(tag = "1")]
-  SetRange {
-    long: bool
-  },
+  SetRange(
+    #[marshal(ctx = "forward")]
+    Request<bool, GenericResult<()>>
+  ),
   #[marshal(tag = "2")]
-  SetRoi {
-    roi: LaserCanRoi
-  },
+  SetRoi(
+    #[marshal(ctx = "forward")]
+    Request<LaserCanRoi, GenericResult<()>>
+  ),
   #[marshal(tag = "3")]
-  SetTimingBudget {
-    budget: u8
-  },
+  SetTimingBudget(
+    #[marshal(ctx = "forward")]
+    Request<u8, GenericResult<()>>
+  ),
   #[marshal(tag = "4")]
-  SetLedThreshold {
-    distance_mm: u16    // 0 for off
-  }
+  SetLedThreshold(
+    #[marshal(ctx = "forward")]
+    Request<u16, GenericResult<()>>    // 0 for off
+  )
 }
 
 impl Validate for LaserCanMessage {
@@ -96,17 +100,19 @@ impl Validate for LaserCanMessage {
     match self {
       LaserCanMessage::Status(_) => Ok(()),
       LaserCanMessage::SetRange { .. } => Ok(()),
-      LaserCanMessage::SetRoi { roi } => roi.validate(),
-      LaserCanMessage::SetTimingBudget { budget } => match budget {
-        20 => Ok(()),
-        33 => Ok(()),
-        50 => Ok(()),
-        100 => Ok(()),
+      LaserCanMessage::SetRoi(roi) => roi.validate(),
+      LaserCanMessage::SetTimingBudget(budget) => match budget {
+        Request::Ack(_) => Ok(()),
+        Request::Request(20) => Ok(()),
+        Request::Request(33) => Ok(()),
+        Request::Request(50) => Ok(()),
+        Request::Request(100) => Ok(()),
         _ => Err("LaserCanMessage: invalid timing budget!")
       },
-      LaserCanMessage::SetLedThreshold { distance_mm } => match distance_mm {
-        21..=4000 => Ok(()),
-        0 => Ok(()),      // Turned off
+      LaserCanMessage::SetLedThreshold(distance_mm) => match distance_mm {
+        Request::Ack(_) => Ok(()),
+        Request::Request(21..=4000) => Ok(()),
+        Request::Request(0) => Ok(()),      // Turned off
         _ => Err("LaserCanMessage: invalid LED threshold. Must be under >20, <4000mm.")
       }
     }

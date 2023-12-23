@@ -113,18 +113,18 @@ pub struct FragmentSetKey {
 
 pub struct Fragments {
   key: FragmentSetKey,
-  data: Vec<Option<Fragment>>,
+  data: alloc::vec::Vec<Option<Fragment>>,
   last_seen: i64,
 }
 
 pub struct FragmentReassembler {
-  messages: Vec<Fragments>,
+  messages: alloc::vec::Vec<Fragments>,
   age_off: i64
 }
 
 impl FragmentReassembler {
   pub fn new(age_off: i64) -> Self {
-    Self { age_off, messages: Vec::new() }
+    Self { age_off, messages: alloc::vec::Vec::new() }
   }
 
   pub fn defragment(&mut self, now: i64, id: &MessageId, message: MaybeFragment) -> Option<GrappleDeviceMessage> {
@@ -165,7 +165,7 @@ impl FragmentReassembler {
 
                 if n_bytes_seen >= total_len as usize {
                   // Fragment is complete
-                  let mut data = Vec::with_capacity(n_bytes_seen);
+                  let mut data = alloc::vec::Vec::with_capacity(n_bytes_seen);
 
                   for el in &fragments.data {
                     if let Some(el) = el.as_ref() {

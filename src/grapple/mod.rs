@@ -92,6 +92,29 @@ impl Validate for MaybeFragment {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.ack_flag")]
+#[repr(C)]
+pub enum Request<R: BinMarshal<()>, A: BinMarshal<()>> {
+  #[marshal(tag = "true")]
+  Ack(A),
+  #[marshal(tag = "false")]
+  Request(R)
+}
+
+impl<R: BinMarshal<()> + Validate, A: BinMarshal<()>> Validate for Request<R, A> {
+  fn validate(&self) -> Result<(), &'static str> {
+    match self {
+      Request::Ack(_) => Ok(()),
+      Request::Request(req) => req.validate(),
+    }
+  }
+}
+
+pub type GenericResult<T> = core::result::Result<T, alloc::string::String>;
+
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.device_type")]
 pub enum GrappleDeviceMessage {
   #[marshal(tag = "DEVICE_TYPE_BROADCAST")]

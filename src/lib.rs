@@ -2,8 +2,6 @@
 
 extern crate alloc;
 
-pub mod can;
-
 pub mod grapple;
 pub mod ni;
 
