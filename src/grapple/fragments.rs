@@ -30,7 +30,7 @@ pub struct Fragment {
 impl BinMarshal<GrappleMessageId> for Fragment {
   type Context = GrappleMessageId;
 
-  fn write<W: binmarshal::BitWriter>(self, writer: &mut W, _ctx: GrappleMessageId) -> bool {
+  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, _ctx: GrappleMessageId) -> bool {
     (match self.body {
       FragmentBody::Start { api_class, api_index, total_len } => {
         match writer.reserve_and_advance_aligned_slice(8) {

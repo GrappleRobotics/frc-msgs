@@ -53,8 +53,8 @@ impl From<MessageId> for u32 {
 impl BinMarshal<()> for MessageId {
   type Context = ();
 
-  fn write<W: binmarshal::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
-    Into::<u32>::into(self).write(writer, ctx)
+  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, ctx: ()) -> bool {
+    Into::<u32>::into(*self).write(writer, ctx)
   }
 
   fn read(view: &mut binmarshal::BitView<'_>, ctx: ()) -> Option<Self> {

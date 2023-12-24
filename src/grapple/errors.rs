@@ -5,38 +5,38 @@ use binmarshal::BinMarshal;
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "u8")]
 #[repr(C)]
-pub enum GrappleError<T: BinMarshal<()>> {
+pub enum GrappleError {
   #[marshal(tag = "0")]
-  ParameterOutOfBounds(alloc::string::String),
-  #[marshal(tag = "0xFE")]
-  Generic(String),
+  ParameterOutOfBounds(String),
+  #[marshal(tag = "1")]
+  FailedAssertion(String),
   #[marshal(tag = "0xFF")]
-  Other(T)
+  Generic(String),
 }
 
 #[cfg(feature = "std")]
-impl<T: BinMarshal<()> + std::fmt::Display> std::fmt::Display for GrappleError<T> {
+impl std::fmt::Display for GrappleError {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     match self {
       GrappleError::ParameterOutOfBounds(oob) => write!(f, "Parameter Out of Bounds: {}", oob),
+      GrappleError::FailedAssertion(msg) => write!(f, "Failed Assertion: {}", msg),
       GrappleError::Generic(str) => write!(f, "Generic Error: {}", str),
-      GrappleError::Other(other) => write!(f, "Other Error: {}", other),
     }
   }
 }
 
 #[cfg(feature = "std")]
-impl<T: BinMarshal<()>, E: std::error::Error> From<E> for GrappleError<T> {
+impl<E: std::error::Error> From<E> for GrappleError {
   fn from(value: E) -> Self {
     Self::Generic(format!("{}", value))
   }
 }
 
 #[cfg(feature = "std")]
-impl<T: BinMarshal<()> + std::fmt::Display> From<GrappleError<T>> for anyhow::Error {
-  fn from(value: GrappleError<T>) -> Self {
+impl From<GrappleError> for anyhow::Error {
+  fn from(value: GrappleError) -> Self {
     anyhow::Error::msg(alloc::format!("{}", value))
   }
 }
 
-pub type GrappleResult<T, O = ()> = core::result::Result<T, GrappleError<O>>;
+pub type GrappleResult<T> = core::result::Result<T, GrappleError>;

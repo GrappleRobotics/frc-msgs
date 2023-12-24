@@ -8,7 +8,7 @@ macro_rules! symmetric {
           $($tt)* => {
             Ok($data)
           },
-          _ => Err("Not Symmetric")
+          _ => Err(GrappleError::FailedAssertion("Not Symmetric".to_string()))
         }
       )
     }
@@ -29,7 +29,7 @@ macro_rules! request_factory {
             Request::Ack(ack) => Ok(ack),
             _ => Err("Replied with Request")
           },
-          _ => Err("Not Symmetric")
+          _ => Err(GrappleError::FailedAssertion("Not Symmetric".to_string()))
         }
       )
     }

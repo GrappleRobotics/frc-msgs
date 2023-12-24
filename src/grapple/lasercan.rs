@@ -11,7 +11,7 @@ pub struct LaserCanRoiU4(pub u8);
 impl BinMarshal<()> for LaserCanRoiU4 {
   type Context = ();
 
-  fn write<W: binmarshal::rw::BitWriter>(self, writer: &mut W, _ctx: ()) -> bool {
+  fn write<W: binmarshal::rw::BitWriter>(&self, writer: &mut W, _ctx: ()) -> bool {
     (self.0 - 1).write(writer, BitSpecification::<4>)
   }
 
