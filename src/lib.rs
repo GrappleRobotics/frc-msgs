@@ -11,6 +11,7 @@ pub use binmarshal;
 use binmarshal::BinMarshal;
 use grapple::MANUFACTURER_GRAPPLE;
 use grapple::MaybeFragment;
+use grapple::errors::GrappleResult;
 
 pub const DEVICE_TYPE_BROADCAST: u8 = 0x00;
 pub const DEVICE_TYPE_FIRMWARE_UPGRADE: u8 = 31;
@@ -99,7 +100,7 @@ impl Message {
 }
 
 impl Validate for Message {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     self.msg.validate()
   }
 }
@@ -122,7 +123,7 @@ pub enum ManufacturerMessage {
 }
 
 impl Validate for ManufacturerMessage {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       ManufacturerMessage::Ni(_) => Ok(()),
       ManufacturerMessage::Grapple(grpl) => grpl.validate(),
@@ -131,5 +132,5 @@ impl Validate for ManufacturerMessage {
 }
 
 pub trait Validate {
-  fn validate(&self) -> Result<(), &'static str>;
+  fn validate(&self) -> GrappleResult<()>;
 }

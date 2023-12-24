@@ -2,7 +2,7 @@ use crate::Validate;
 use alloc::string::String;
 use binmarshal::BinMarshal;
 
-use super::GrappleMessageId;
+use super::{GrappleMessageId, errors::GrappleResult};
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
@@ -69,7 +69,7 @@ pub enum GrappleDeviceInfo {
 }
 
 impl Validate for GrappleDeviceInfo {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     Ok(())
   }
 }

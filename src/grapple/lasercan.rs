@@ -2,7 +2,7 @@ use crate::Validate;
 use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
-use super::{GrappleMessageId, Request, GenericResult};
+use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError}};
 
 #[derive(Proxy)]
 #[repr(transparent)]
@@ -34,8 +34,10 @@ pub struct LaserCanRoi {
 }
 
 impl Validate for LaserCanRoi {
-  fn validate(&self) -> Result<(), &'static str> {
-    if self.w.0 % 2 != 0 || self.h.0 % 2 != 0 { Err("LaserCanRoi: width and height must be even!")? };
+  fn validate(&self) -> GrappleResult<()> {
+    if self.w.0 % 2 != 0 || self.h.0 % 2 != 0 {
+      Err(GrappleError::ParameterOutOfBounds("LaserCanRoi: width and height must be even".to_owned()))?;
+    };
     let hw = self.w.0 / 2;
     let hh = self.h.0 / 2;
 
@@ -44,7 +46,9 @@ impl Validate for LaserCanRoi {
     let ymin = self.y.0 as i16 - hh as i16;
     let ymax = self.y.0 as i16 + hh as i16;
 
-    if xmin < 0 || xmax > 16 || ymin < 0 || ymax > 16 { Err("LaserCanRoi: out of bounds!")? }
+    if xmin < 0 || xmax > 16 || ymin < 0 || ymax > 16 {
+      Err(GrappleError::ParameterOutOfBounds("LaserCanRoi: out of bounds".to_owned()))?;
+    }
 
     Ok(())
   }
@@ -76,27 +80,27 @@ pub enum LaserCanMessage {
   #[marshal(tag = "1")]
   SetRange(
     #[marshal(ctx = "forward")]
-    Request<bool, GenericResult<()>>
+    Request<bool, GrappleResult<()>>
   ),
   #[marshal(tag = "2")]
   SetRoi(
     #[marshal(ctx = "forward")]
-    Request<LaserCanRoi, GenericResult<()>>
+    Request<LaserCanRoi, GrappleResult<()>>
   ),
   #[marshal(tag = "3")]
   SetTimingBudget(
     #[marshal(ctx = "forward")]
-    Request<u8, GenericResult<()>>
+    Request<u8, GrappleResult<()>>
   ),
   #[marshal(tag = "4")]
   SetLedThreshold(
     #[marshal(ctx = "forward")]
-    Request<u16, GenericResult<()>>    // 0 for off
+    Request<u16, GrappleResult<()>>    // 0 for off
   )
 }
 
 impl Validate for LaserCanMessage {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       LaserCanMessage::Status(_) => Ok(()),
       LaserCanMessage::SetRange { .. } => Ok(()),
@@ -107,13 +111,13 @@ impl Validate for LaserCanMessage {
         Request::Request(33) => Ok(()),
         Request::Request(50) => Ok(()),
         Request::Request(100) => Ok(()),
-        _ => Err("LaserCanMessage: invalid timing budget!")
+        _ => Err(GrappleError::ParameterOutOfBounds("Invalid Timing Budget".to_string()))
       },
       LaserCanMessage::SetLedThreshold(distance_mm) => match distance_mm {
         Request::Ack(_) => Ok(()),
         Request::Request(21..=4000) => Ok(()),
         Request::Request(0) => Ok(()),      // Turned off
-        _ => Err("LaserCanMessage: invalid LED threshold. Must be under >20, <4000mm.")
+        _ => Err(GrappleError::ParameterOutOfBounds("Invalid LED threshold. Must be under >20, <4000mm.".to_string()))
       }
     }
   }

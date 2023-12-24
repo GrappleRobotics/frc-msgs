@@ -1,13 +1,14 @@
 use binmarshal::BinMarshal;
 
 use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, MessageId};
-use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage, fragments::Fragment};
+use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage, fragments::Fragment, errors::GrappleResult};
 
 pub mod device_info;
 // pub mod spiderlan;
 pub mod lasercan;
 pub mod firmware;
 pub mod fragments;
+pub mod errors;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
@@ -81,7 +82,7 @@ pub enum MaybeFragment {
 }
 
 impl Validate for MaybeFragment {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       MaybeFragment::Fragment(_) => Ok(()),
       MaybeFragment::Message(m) => m.validate(),
@@ -102,15 +103,13 @@ pub enum Request<R: BinMarshal<()>, A: BinMarshal<()>> {
 }
 
 impl<R: BinMarshal<()> + Validate, A: BinMarshal<()>> Validate for Request<R, A> {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       Request::Ack(_) => Ok(()),
       Request::Request(req) => req.validate(),
     }
   }
 }
-
-pub type GenericResult<T> = core::result::Result<T, alloc::string::String>;
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
@@ -137,7 +136,7 @@ pub enum GrappleDeviceMessage {
 }
 
 impl Validate for GrappleDeviceMessage {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       GrappleDeviceMessage::Broadcast(bc) => bc.validate(),
       GrappleDeviceMessage::FirmwareUpdate(fw) => fw.validate(),
@@ -159,7 +158,7 @@ pub enum GrappleBroadcastMessage {
 }
 
 impl Validate for GrappleBroadcastMessage {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     match self {
       GrappleBroadcastMessage::DeviceInfo(di) => di.validate(),
     }

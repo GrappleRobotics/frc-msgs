@@ -1,7 +1,7 @@
 use crate::Validate;
 use binmarshal::BinMarshal;
 
-use super::GrappleMessageId;
+use super::{GrappleMessageId, errors::GrappleResult};
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
@@ -19,7 +19,7 @@ pub enum GrappleFirmwareMessage {
 }
 
 impl Validate for GrappleFirmwareMessage {
-  fn validate(&self) -> Result<(), &'static str> {
+  fn validate(&self) -> GrappleResult<()> {
     Ok(())
   }
 }
