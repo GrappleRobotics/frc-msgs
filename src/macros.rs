@@ -8,7 +8,7 @@ macro_rules! symmetric {
           $($tt)* => {
             Ok($data)
           },
-          _ => Err(GrappleError::FailedAssertion("Not Symmetric".to_string()))
+          _ => Err(GrappleError::FailedAssertion(CowStr::Borrowed("Not Symmetric")))
         }
       )
     }
@@ -27,9 +27,9 @@ macro_rules! request_factory {
         |msg| match msg {
           $($tt)* => match $data {
             Request::Ack(ack) => Ok(ack),
-            _ => Err("Replied with Request")
+            _ => Err(GrappleError::FailedAssertion(CowStr::Borrowed("Received request, expected an ACK")))
           },
-          _ => Err(GrappleError::FailedAssertion("Not Symmetric".to_string()))
+          _ => Err(GrappleError::FailedAssertion(CowStr::Borrowed("Not Symmetric")))
         }
       )
     }
