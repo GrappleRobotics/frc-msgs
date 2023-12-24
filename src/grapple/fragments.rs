@@ -201,7 +201,7 @@ impl FragmentReassembler {
     }
   }
 
-  pub fn maybe_fragment<Consumer: Fn(MessageId, &[u8])>(device_id: u8, mut message: GrappleDeviceMessage, fragment_id: u8, consumer: Consumer) {
+  pub fn maybe_fragment<Consumer: FnMut(MessageId, &[u8])>(device_id: u8, mut message: GrappleDeviceMessage, fragment_id: u8, mut consumer: Consumer) {
     let mut payload = [0u8; 253];
     let mut writer = BufferBitWriter::new(&mut payload);
     
