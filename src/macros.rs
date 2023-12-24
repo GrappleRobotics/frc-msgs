@@ -35,17 +35,3 @@ macro_rules! request_factory {
     }
   }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::grapple::{GrappleDeviceMessage, Request, lasercan::LaserCanMessage};
-
-//   #[test]
-//   fn test() {
-//     let (e, d) = request_factory!(data, GrappleDeviceMessage::DistanceSensor(LaserCanMessage::SetRange(data)));
-    
-//     let req = e(true);
-//     let rsp: GrappleDeviceMessage = todo!();
-//     let rsp = d(rsp);
-//   }
-// }

@@ -2,7 +2,7 @@ use crate::Validate;
 use binmarshal::{BinMarshal, Proxy, BitSpecification};
 use core::ops::{Deref, DerefMut};
 
-use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError}};
+use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError, CowStr}};
 
 #[derive(Proxy)]
 #[repr(transparent)]
@@ -36,7 +36,7 @@ pub struct LaserCanRoi {
 impl Validate for LaserCanRoi {
   fn validate(&self) -> GrappleResult<()> {
     if self.w.0 % 2 != 0 || self.h.0 % 2 != 0 {
-      Err(GrappleError::ParameterOutOfBounds("LaserCanRoi: width and height must be even".to_owned()))?;
+      Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("LaserCanRoi: width and height must be even")))?;
     };
     let hw = self.w.0 / 2;
     let hh = self.h.0 / 2;
@@ -47,7 +47,7 @@ impl Validate for LaserCanRoi {
     let ymax = self.y.0 as i16 + hh as i16;
 
     if xmin < 0 || xmax > 16 || ymin < 0 || ymax > 16 {
-      Err(GrappleError::ParameterOutOfBounds("LaserCanRoi: out of bounds".to_owned()))?;
+      Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("LaserCanRoi: out of bounds")))?;
     }
 
     Ok(())
@@ -111,13 +111,13 @@ impl Validate for LaserCanMessage {
         Request::Request(33) => Ok(()),
         Request::Request(50) => Ok(()),
         Request::Request(100) => Ok(()),
-        _ => Err(GrappleError::ParameterOutOfBounds("Invalid Timing Budget".to_string()))
+        _ => Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("Invalid Timing Budget")))
       },
       LaserCanMessage::SetLedThreshold(distance_mm) => match distance_mm {
         Request::Ack(_) => Ok(()),
         Request::Request(21..=4000) => Ok(()),
         Request::Request(0) => Ok(()),      // Turned off
-        _ => Err(GrappleError::ParameterOutOfBounds("Invalid LED threshold. Must be under >20, <4000mm.".to_string()))
+        _ => Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("Invalid LED threshold. Must be under >20, <4000mm.")))
       }
     }
   }
