@@ -39,13 +39,13 @@ impl From<u32> for MessageId {
   }
 }
 
-impl Into<u32> for MessageId {
-  fn into(self) -> u32 {
-    (self.device_id as u32 & 0b111111)
-    | ((self.api_index as u32 & 0b1111) << 6)
-    | ((self.api_class as u32 & 0b111111) << (6+4))
-    | ((self.manufacturer as u32 & 0b11111111) << (6+4+6))
-    | ((self.device_type as u32 & 0b11111) << (6+4+6+8))
+impl From<MessageId> for u32 {
+  fn from(v: MessageId) -> Self {
+    (v.device_id as u32 & 0b111111)
+    | ((v.api_index as u32 & 0b1111) << 6)
+    | ((v.api_class as u32 & 0b111111) << (6+4))
+    | ((v.manufacturer as u32 & 0b11111111) << (6+4+6))
+    | ((v.device_type as u32 & 0b11111) << (6+4+6+8))
   }
 }
 
