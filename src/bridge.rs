@@ -7,5 +7,6 @@ use crate::MessageId;
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct BridgedCANMessage {
   pub id: MessageId,
-  pub data: LengthTaggedVec<u8, u8>
+  pub timestamp: u32,
+  pub data: LengthTaggedVec<u8, u8>,
 }
