@@ -169,12 +169,12 @@ impl Validate for GrappleBroadcastMessage {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct TaggedGrappleMessage {
-  pub id: GrappleMessageId,
+  pub device_id: u8,
   pub msg: GrappleDeviceMessage
 }
 
 impl TaggedGrappleMessage {
-  pub fn new(id: GrappleMessageId, msg: GrappleDeviceMessage) -> Self {
-    Self { id, msg }
+  pub fn new(device_id: u8, msg: GrappleDeviceMessage) -> Self {
+    Self { device_id, msg }
   }
 }
