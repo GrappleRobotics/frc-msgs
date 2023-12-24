@@ -5,6 +5,7 @@ extern crate alloc;
 pub mod grapple;
 pub mod ni;
 pub mod macros;
+pub mod bridge;
 
 pub use binmarshal;
 
