@@ -19,12 +19,11 @@ pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MessageId {
-  device_type: u8,
-  manufacturer: u8,
-  api_class: u8,
-  api_index: u8,
-  #[allow(dead_code)]
-  device_id: u8,
+  pub device_type: u8,
+  pub manufacturer: u8,
+  pub api_class: u8,
+  pub api_index: u8,
+  pub device_id: u8,
 }
 
 impl From<u32> for MessageId {

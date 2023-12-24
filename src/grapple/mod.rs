@@ -66,7 +66,7 @@ impl From<GrappleMessageId> for MessageId {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = GrappleMessageId, tag = "ctx.fragment_flag")]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.fragment_flag", tag_type = "bool")]
 pub enum MaybeFragment {
   #[marshal(tag = "true")]
   Fragment(
@@ -92,7 +92,7 @@ impl Validate for MaybeFragment {
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = GrappleMessageId, tag = "ctx.ack_flag")]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.ack_flag", tag_type = "bool")]
 #[repr(C)]
 pub enum Request<R: BinMarshal<()>, A: BinMarshal<()>> {
   #[marshal(tag = "true")]
