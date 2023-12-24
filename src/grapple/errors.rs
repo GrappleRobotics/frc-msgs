@@ -32,4 +32,11 @@ impl<T: BinMarshal<()>, E: std::error::Error> From<E> for GrappleError<T> {
   }
 }
 
+#[cfg(feature = "std")]
+impl<T: BinMarshal<()> + std::fmt::Display> From<GrappleError<T>> for anyhow::Error {
+  fn from(value: GrappleError<T>) -> Self {
+    anyhow::Error::msg(alloc::format!("{}", value))
+  }
+}
+
 pub type GrappleResult<T, O = ()> = core::result::Result<T, GrappleError<O>>;
