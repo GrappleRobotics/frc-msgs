@@ -15,7 +15,7 @@ pub const DEVICE_TYPE_BROADCAST: u8 = 0x00;
 pub const DEVICE_TYPE_FIRMWARE_UPGRADE: u8 = 31;
 pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, BinMarshal)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MessageId {
@@ -25,6 +25,42 @@ pub struct MessageId {
   api_index: u8,
   #[allow(dead_code)]
   device_id: u8,
+}
+
+impl From<u32> for MessageId {
+  fn from(value: u32) -> Self {
+    Self {
+      device_type: ((value >> 6+4+6+8) & 0b11111) as u8,
+      manufacturer: ((value >> 6+4+6) & 0b11111111) as u8,
+      api_class: ((value >> 6+4) & 0b111111) as u8,
+      api_index: ((value >> 6) & 0b1111) as u8,
+      device_id: (value & 0b111111) as u8
+    }
+  }
+}
+
+impl Into<u32> for MessageId {
+  fn into(self) -> u32 {
+    (self.device_id as u32 & 0b111111)
+    | ((self.api_index as u32 & 0b1111) << 6)
+    | ((self.api_class as u32 & 0b111111) << (6+4))
+    | ((self.manufacturer as u32 & 0b11111111) << (6+4+6))
+    | ((self.device_type as u32 & 0b11111) << (6+4+6+8))
+  }
+}
+
+impl BinMarshal<()> for MessageId {
+  type Context = ();
+
+  fn write<W: binmarshal::BitWriter>(self, writer: &mut W, ctx: ()) -> bool {
+    Into::<u32>::into(self).write(writer, ctx)
+  }
+
+  fn read(view: &mut binmarshal::BitView<'_>, ctx: ()) -> Option<Self> {
+    Some(Into::<Self>::into(u32::read(view, ctx)?))
+  }
+
+  fn update(&mut self, _ctx: &mut ()) { }
 }
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
