@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.0.3"
+version = "2024.0.4"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -22,6 +22,7 @@ strum_macros = "0.24.3"
 std = ["binmarshal/std", "anyhow/std"]
 serde = ["dep:serde", "binmarshal/serde"]
 schema = ["dep:schemars", "binmarshal/schema"]
+lasercan_nop_patch = ["binmarshal/lasercan_nop_patch"]
 default = ["std", "serde", "schema"]
 
 [dev-dependencies]
