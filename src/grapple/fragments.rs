@@ -65,7 +65,7 @@ impl BinMarshal<GrappleMessageId> for Fragment {
             body: FragmentBody::Start {
               api_class: buf[0],
               api_index: buf[1],
-              total_len: buf[3],
+              total_len: buf[2],
             }
           })
         },
