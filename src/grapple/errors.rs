@@ -6,7 +6,7 @@ use binmarshal::BinMarshal;
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum CowStr {
   Borrowed(&'static str),
-  Owned(String)
+  Owned(alloc::string::String)
 }
 
 impl AsRef<str> for CowStr {
@@ -74,7 +74,7 @@ impl BinMarshal<()> for CowStr {
   }
 
   fn read(view: &mut binmarshal::BitView<'_>, _ctx: ()) -> Option<Self> {
-    String::read(view, _ctx).map(CowStr::Owned)
+    alloc::string::String::read(view, _ctx).map(CowStr::Owned)
   }
 
   fn update(&mut self, _ctx: &mut ()) { }
