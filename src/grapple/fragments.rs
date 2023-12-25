@@ -33,7 +33,7 @@ impl BinMarshal<GrappleMessageId> for Fragment {
   fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, _ctx: GrappleMessageId) -> bool {
     (match self.body {
       FragmentBody::Start { api_class, api_index, total_len } => {
-        match writer.reserve_and_advance_aligned_slice(8) {
+        match writer.reserve_and_advance_aligned_slice(3) {
           Some(buf) => {
             buf[0] = api_class;
             buf[1] = api_index;
