@@ -8,11 +8,12 @@ use super::{GrappleMessageId, errors::GrappleResult};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = u8)]
+#[repr(u8)]
 pub enum GrappleModelId {
   #[marshal(tag = "0x10")]
-  LaserCan,
+  LaserCan = 0x10,
   #[marshal(tag = "0x20")]
-  SpiderLan,
+  SpiderLan = 0x20,
 }
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
