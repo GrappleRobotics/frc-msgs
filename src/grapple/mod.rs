@@ -1,10 +1,11 @@
 use binmarshal::BinMarshal;
 
 use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, MessageId};
-use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, lasercan::LaserCanMessage, fragments::Fragment, errors::GrappleResult};
+use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, fragments::Fragment, errors::GrappleResult};
 
 pub mod device_info;
 // pub mod spiderlan;
+#[cfg(feature = "grapple_lasercan")]
 pub mod lasercan;
 pub mod firmware;
 pub mod fragments;
@@ -128,10 +129,11 @@ pub enum GrappleDeviceMessage {
     GrappleFirmwareMessage
   ),
 
+  #[cfg(feature = "grapple_lasercan")]
   #[marshal(tag = "DEVICE_TYPE_DISTANCE_SENSOR")]
   DistanceSensor(
     #[marshal(ctx = "forward")]
-    LaserCanMessage
+    lasercan::LaserCanMessage
   ),
 }
 
@@ -140,6 +142,7 @@ impl Validate for GrappleDeviceMessage {
     match self {
       GrappleDeviceMessage::Broadcast(bc) => bc.validate(),
       GrappleDeviceMessage::FirmwareUpdate(fw) => fw.validate(),
+      #[cfg(feature = "grapple_lasercan")]
       GrappleDeviceMessage::DistanceSensor(lc) => lc.validate(),
     }
   }

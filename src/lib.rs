@@ -3,6 +3,7 @@
 extern crate alloc;
 
 pub mod grapple;
+#[cfg(feature = "ni")]
 pub mod ni;
 pub mod macros;
 pub mod bridge;
@@ -111,6 +112,7 @@ impl Validate for Message {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.manufacturer")]
 pub enum ManufacturerMessage {
+  #[cfg(feature = "ni")]
   #[marshal(tag = "ni::MANUFACTURER_NI")]
   Ni(
     #[marshal(ctx = "forward")]
@@ -126,6 +128,7 @@ pub enum ManufacturerMessage {
 impl Validate for ManufacturerMessage {
   fn validate(&self) -> GrappleResult<()> {
     match self {
+      #[cfg(feature = "ni")]
       ManufacturerMessage::Ni(_) => Ok(()),
       ManufacturerMessage::Grapple(grpl) => grpl.validate(),
     }
