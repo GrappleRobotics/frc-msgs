@@ -55,17 +55,44 @@ impl Validate for LaserCanRoi {
 }
 
 #[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[marshal(tag_type = "u8", tag_bits = 7)]
+#[repr(u8)]
+pub enum LaserCanTimingBudget {
+  #[marshal(tag = "20")]
+  TB20ms = 20,
+  #[marshal(tag = "33")]
+  TB33ms = 33,
+  #[marshal(tag = "50")]
+  TB50ms = 50,
+  #[marshal(tag = "100")]
+  TB100ms = 100,
+}
+
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[marshal(tag_type = "bool", tag_bits = 1)]
+#[repr(u8)]
+pub enum LaserCanRangingMode {
+  #[marshal(tag = "false")]
+  Short,
+  #[marshal(tag = "true")]
+  Long
+}
+
+#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
-pub struct LaserCanStatusFrame {
+pub struct LaserCanMeasurement {
+  // This struct should be 8 bytes or less to fit in a single status frame
   pub status: u8,
   pub distance_mm: u16,
   pub ambient: u16,
-  #[marshal(bits = 1)]
-  pub long: bool,
-  #[marshal(bits = 7)]
-  pub budget_ms: u8,
+  pub long: LaserCanRangingMode,
+  pub budget_ms: LaserCanTimingBudget,
   pub roi: LaserCanRoi
 }
 
@@ -76,11 +103,11 @@ pub struct LaserCanStatusFrame {
 #[repr(C)]
 pub enum LaserCanMessage {
   #[marshal(tag = "0")]
-  Status(LaserCanStatusFrame),
+  Measurement(LaserCanMeasurement),
   #[marshal(tag = "1")]
   SetRange(
     #[marshal(ctx = "forward")]
-    Request<bool, GrappleResult<()>>
+    Request<LaserCanRangingMode, GrappleResult<()>>
   ),
   #[marshal(tag = "2")]
   SetRoi(
@@ -90,7 +117,7 @@ pub enum LaserCanMessage {
   #[marshal(tag = "3")]
   SetTimingBudget(
     #[marshal(ctx = "forward")]
-    Request<u8, GrappleResult<()>>
+    Request<LaserCanTimingBudget, GrappleResult<()>>
   ),
   #[marshal(tag = "4")]
   SetLedThreshold(
@@ -102,17 +129,10 @@ pub enum LaserCanMessage {
 impl Validate for LaserCanMessage {
   fn validate(&self) -> GrappleResult<()> {
     match self {
-      LaserCanMessage::Status(_) => Ok(()),
-      LaserCanMessage::SetRange { .. } => Ok(()),
+      LaserCanMessage::Measurement(_) => Ok(()),
+      LaserCanMessage::SetRange(..) => Ok(()),
       LaserCanMessage::SetRoi(roi) => roi.validate(),
-      LaserCanMessage::SetTimingBudget(budget) => match budget {
-        Request::Ack(_) => Ok(()),
-        Request::Request(20) => Ok(()),
-        Request::Request(33) => Ok(()),
-        Request::Request(50) => Ok(()),
-        Request::Request(100) => Ok(()),
-        _ => Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("Invalid Timing Budget")))
-      },
+      LaserCanMessage::SetTimingBudget(..) => Ok(()),
       LaserCanMessage::SetLedThreshold(distance_mm) => match distance_mm {
         Request::Ack(_) => Ok(()),
         Request::Request(21..=4000) => Ok(()),
