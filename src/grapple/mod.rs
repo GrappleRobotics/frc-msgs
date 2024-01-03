@@ -1,4 +1,4 @@
-use binmarshal::BinMarshal;
+use binmarshal::{Demarshal, MarshalUpdate, Marshal};
 
 use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, MessageId};
 use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, fragments::Fragment, errors::GrappleResult};
@@ -65,24 +65,26 @@ impl From<GrappleMessageId> for MessageId {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.fragment_flag", tag_type = "bool")]
-pub enum MaybeFragment {
+pub enum MaybeFragment<'a> {
   #[marshal(tag = "true")]
   Fragment(
     #[marshal(ctx = "forward")]
-    Fragment
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Fragment<'a>
   ),
   #[marshal(tag = "false")]
   Message(
     #[marshal(ctx = "forward")]
-    GrappleDeviceMessage
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    GrappleDeviceMessage<'a>
   )
 }
 
-impl Validate for MaybeFragment {
+impl<'a> Validate for MaybeFragment<'a> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       MaybeFragment::Fragment(_) => Ok(()),
@@ -91,19 +93,45 @@ impl Validate for MaybeFragment {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[marshal(ctx = GrappleMessageId, tag = "ctx.ack_flag", tag_type = "bool")]
 #[repr(C)]
-pub enum Request<R: BinMarshal<()>, A: BinMarshal<()>> {
-  #[marshal(tag = "true")]
+pub enum Request<R, A> {
   Ack(A),
-  #[marshal(tag = "false")]
   Request(R)
 }
 
-impl<R: BinMarshal<()> + Validate, A: BinMarshal<()>> Validate for Request<R, A> {
+// Have to manually implement since the proc macro isn't smart enough to only have a lifetime bound for Demarshal
+impl<R: Marshal<()>, A: Marshal<()>> Marshal<GrappleMessageId> for Request<R, A> {
+  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, _ctx: GrappleMessageId) -> Result<(), binmarshal::MarshalError> {
+    match self {
+      Request::Ack(ack) => ack.write(writer, ()),
+      Request::Request(req) => req.write(writer, ()),
+    }
+  }
+}
+
+impl<'dm, R: Demarshal<'dm, ()>, A: Demarshal<'dm, ()>> Demarshal<'dm, GrappleMessageId> for Request<R, A> {
+  fn read(view: &mut binmarshal::BitView<'dm>, ctx: GrappleMessageId) -> Result<Self, binmarshal::MarshalError> {
+    if ctx.ack_flag {
+      Ok(Request::Ack(A::read(view, ())?))
+    } else {
+      Ok(Request::Request(R::read(view, ())?))
+    }
+  }
+}
+
+impl<R, A> MarshalUpdate<GrappleMessageId> for Request<R, A> {
+  fn update(&mut self, ctx: &mut GrappleMessageId) {
+    match self {
+      Request::Ack(_) => ctx.ack_flag = true,
+      Request::Request(_) => ctx.ack_flag = false,
+    }
+  }
+}
+
+impl<R: Validate, A> Validate for Request<R, A> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       Request::Ack(_) => Ok(()),
@@ -112,32 +140,35 @@ impl<R: BinMarshal<()> + Validate, A: BinMarshal<()>> Validate for Request<R, A>
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.device_type")]
-pub enum GrappleDeviceMessage {
+pub enum GrappleDeviceMessage<'a> {
   #[marshal(tag = "DEVICE_TYPE_BROADCAST")]
   Broadcast(
     #[marshal(ctx = "forward")]
-    GrappleBroadcastMessage
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    GrappleBroadcastMessage<'a>
   ),
 
   #[marshal(tag = "DEVICE_TYPE_FIRMWARE_UPGRADE")]
   FirmwareUpdate(
     #[marshal(ctx = "forward")]
-    GrappleFirmwareMessage
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    GrappleFirmwareMessage<'a>
   ),
 
   #[cfg(feature = "grapple_lasercan")]
   #[marshal(tag = "DEVICE_TYPE_DISTANCE_SENSOR")]
   DistanceSensor(
     #[marshal(ctx = "forward")]
-    lasercan::LaserCanMessage
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    lasercan::LaserCanMessage<'a>
   ),
 }
 
-impl Validate for GrappleDeviceMessage {
+impl<'a> Validate for GrappleDeviceMessage<'a> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       GrappleDeviceMessage::Broadcast(bc) => bc.validate(),
@@ -148,19 +179,20 @@ impl Validate for GrappleDeviceMessage {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
-pub enum GrappleBroadcastMessage {
+pub enum GrappleBroadcastMessage<'a> {
   #[marshal(tag = "0")]
   DeviceInfo(
     #[marshal(ctx = "forward")]
-    GrappleDeviceInfo
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    GrappleDeviceInfo<'a>
   )
 }
 
-impl Validate for GrappleBroadcastMessage {
+impl<'a> Validate for GrappleBroadcastMessage<'a> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       GrappleBroadcastMessage::DeviceInfo(di) => di.validate(),
@@ -171,13 +203,14 @@ impl Validate for GrappleBroadcastMessage {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub struct TaggedGrappleMessage {
+pub struct TaggedGrappleMessage<'a> {
   pub device_id: u8,
-  pub msg: GrappleDeviceMessage
+  #[cfg_attr(feature = "serde", serde(borrow))]
+  pub msg: GrappleDeviceMessage<'a>
 }
 
-impl TaggedGrappleMessage {
-  pub fn new(device_id: u8, msg: GrappleDeviceMessage) -> Self {
+impl<'a> TaggedGrappleMessage<'a> {
+  pub fn new(device_id: u8, msg: GrappleDeviceMessage<'a>) -> Self {
     Self { device_id, msg }
   }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.1.0"
+version = "2024.2.0"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -12,15 +12,15 @@ license = "MIT"
 
 [dependencies]
 anyhow = { version = "1.0.76", default-features = false }
-binmarshal = { version = "^0.2.0", default-features = false, features = ["anyhow"] }
-schemars = { version = "0.8.12", optional = true }
+binmarshal = { version = "^1.0.2", default-features = false, features = ["anyhow"] }
+schemars = { version = "0.8.12", features = ["smallvec"], optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
-smallvec = "1.10.0"
+smallvec = "1.11.2"
 strum_macros = "0.24.3"
 
 [features]
 std = ["binmarshal/std", "anyhow/std"]
-serde = ["dep:serde", "binmarshal/serde"]
+serde = ["dep:serde", "binmarshal/serde", "smallvec/serde"]
 schema = ["dep:schemars", "binmarshal/schema"]
 lasercan_nop_patch = ["binmarshal/lasercan_nop_patch"]
 

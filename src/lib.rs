@@ -10,7 +10,9 @@ pub mod bridge;
 
 pub use binmarshal;
 
-use binmarshal::BinMarshal;
+use binmarshal::Demarshal;
+use binmarshal::Marshal;
+use binmarshal::MarshalUpdate;
 use grapple::MANUFACTURER_GRAPPLE;
 use grapple::MaybeFragment;
 use grapple::errors::GrappleResult;
@@ -52,38 +54,39 @@ impl From<MessageId> for u32 {
   }
 }
 
-impl BinMarshal<()> for MessageId {
-  type Context = ();
-
-  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, ctx: ()) -> bool {
+impl Marshal for MessageId {
+  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, ctx: ()) -> Result<(), binmarshal::MarshalError> {
     Into::<u32>::into(*self).write(writer, ctx)
   }
-
-  fn read(view: &mut binmarshal::BitView<'_>, ctx: ()) -> Option<Self> {
-    Some(Into::<Self>::into(u32::read(view, ctx)?))
-  }
-
-  fn update(&mut self, _ctx: &mut ()) { }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+impl<'dm> Demarshal<'dm, ()> for MessageId {
+  fn read(view: &mut binmarshal::BitView<'dm>, ctx: ()) -> Result<Self, binmarshal::MarshalError> {
+    Ok(Into::<Self>::into(u32::read(view, ctx)?))
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub struct Message {
+pub struct Message<'a> {
   pub id: MessageId,
+
   #[marshal(
     ctx = "construct",
+    ctx_type = MessageId,
     ctx_member(field = "device_type", member = "id.device_type"),
     ctx_member(field = "manufacturer", member = "id.manufacturer"),
     ctx_member(field = "api_class", member = "id.api_class"),
     ctx_member(field = "api_index", member = "id.api_index"),
     ctx_member(field = "device_id", member = "id.device_id"),
   )]
-  pub msg: ManufacturerMessage
+  #[cfg_attr(feature = "serde", serde(borrow))]
+  pub msg: ManufacturerMessage<'a>
 }
 
-impl Message {
-  pub fn new(device_id: u8, msg: ManufacturerMessage) -> Self {
+impl<'a> Message<'a> {
+  pub fn new(device_id: u8, msg: ManufacturerMessage<'a>) -> Self {
     let mut newmsg = Self {
       id: MessageId {
         device_type: 0,
@@ -101,17 +104,17 @@ impl Message {
   }
 }
 
-impl Validate for Message {
+impl<'a> Validate for Message<'a> {
   fn validate(&self) -> GrappleResult<()> {
     self.msg.validate()
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.manufacturer")]
-pub enum ManufacturerMessage {
+pub enum ManufacturerMessage<'a> {
   #[cfg(feature = "ni")]
   #[marshal(tag = "ni::MANUFACTURER_NI")]
   Ni(
@@ -120,12 +123,13 @@ pub enum ManufacturerMessage {
   ),
   #[marshal(tag = "MANUFACTURER_GRAPPLE")]
   Grapple(
-    #[marshal(ctx = "coerce")]
-    MaybeFragment
+    #[marshal(ctx = "coerce", ctx_type = crate::grapple::GrappleMessageId)]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    MaybeFragment<'a>
   )
 }
 
-impl Validate for ManufacturerMessage {
+impl<'a> Validate for ManufacturerMessage<'a> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       #[cfg(feature = "ni")]

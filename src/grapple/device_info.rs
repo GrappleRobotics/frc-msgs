@@ -1,10 +1,9 @@
 use crate::Validate;
-use alloc::string::String;
-use binmarshal::BinMarshal;
+use binmarshal::{Marshal, Demarshal, MarshalUpdate};
 
 use super::{GrappleMessageId, errors::GrappleResult};
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = u8)]
@@ -16,11 +15,11 @@ pub enum GrappleModelId {
   SpiderLan = 0x20,
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_index")]
-pub enum GrappleDeviceInfo {
+pub enum GrappleDeviceInfo<'a> {
   #[marshal(tag = "0")]
   EnumerateRequest,
 
@@ -35,9 +34,9 @@ pub enum GrappleDeviceInfo {
     is_dfu_in_progress: bool,
 
     #[marshal(align = 1)]
-    version: String,
+    version: &'a str,
 
-    name: String
+    name: &'a str
   },
 
   #[marshal(tag = "2")]
@@ -48,7 +47,7 @@ pub enum GrappleDeviceInfo {
   #[marshal(tag = "3")]
   SetName {
     serial: u32,
-    name: String
+    name: &'a str
   },
 
   #[marshal(tag = "4")]
@@ -69,7 +68,7 @@ pub enum GrappleDeviceInfo {
   ArbitrationReject,
 }
 
-impl Validate for GrappleDeviceInfo {
+impl<'a> Validate for GrappleDeviceInfo<'a> {
   fn validate(&self) -> GrappleResult<()> {
     Ok(())
   }

@@ -1,12 +1,13 @@
-use binmarshal::{BinMarshal, LengthTaggedVec};
+use binmarshal::{LengthTaggedPayload, Marshal, Demarshal};
 
 use crate::MessageId;
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-pub struct BridgedCANMessage {
+pub struct BridgedCANMessage<'a> {
   pub id: MessageId,
   pub timestamp: u32,
-  pub data: LengthTaggedVec<u8, u8>,
+  #[cfg_attr(feature = "serde", serde(borrow))]
+  pub data: LengthTaggedPayload<'a, u8>,
 }

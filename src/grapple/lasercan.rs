@@ -1,28 +1,26 @@
 use crate::Validate;
-use binmarshal::{BinMarshal, Proxy, BitSpecification};
+use binmarshal::{Proxy, BitSpecification, Marshal, Demarshal, MarshalUpdate, CowStr};
 use core::ops::{Deref, DerefMut};
 
-use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError, CowStr}};
+use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError}};
 
 #[derive(Proxy)]
 #[repr(transparent)]
 pub struct LaserCanRoiU4(pub u8);
 
-impl BinMarshal<()> for LaserCanRoiU4 {
-  type Context = ();
-
-  fn write<W: binmarshal::rw::BitWriter>(&self, writer: &mut W, _ctx: ()) -> bool {
+impl Marshal<()> for LaserCanRoiU4 {
+  fn write<W: binmarshal::BitWriter>(&self, writer: &mut W, _ctx: ()) -> Result<(), binmarshal::MarshalError> {
     (self.0 - 1).write(writer, BitSpecification::<4>)
   }
-
-  fn read(view: &mut binmarshal::rw::BitView<'_>, _ctx: ()) -> Option<Self> {
-    u8::read(view, BitSpecification::<4>).map(|x| Self(x + 1))
-  }
-
-  fn update<'a>(&'a mut self, _ctx: &mut ()) { }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+impl<'dm> Demarshal<'dm, ()> for LaserCanRoiU4 {
+  fn read(view: &mut binmarshal::BitView<'dm>, _ctx: ()) -> Result<Self, binmarshal::MarshalError> {
+    u8::read(view, BitSpecification::<4>).map(|x| Self(x + 1))
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
@@ -54,7 +52,7 @@ impl Validate for LaserCanRoi {
   }
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "u8", tag_bits = 7)]
@@ -70,7 +68,7 @@ pub enum LaserCanTimingBudget {
   TB100ms = 100,
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "bool", tag_bits = 1)]
@@ -82,7 +80,7 @@ pub enum LaserCanRangingMode {
   Long
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
@@ -96,37 +94,41 @@ pub struct LaserCanMeasurement {
   pub roi: LaserCanRoi
 }
 
-#[derive(Debug, Clone, BinMarshal, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
 #[repr(C)]
-pub enum LaserCanMessage {
+pub enum LaserCanMessage<'a> {
   #[marshal(tag = "0")]
   Measurement(LaserCanMeasurement),
   #[marshal(tag = "1")]
   SetRange(
     #[marshal(ctx = "forward")]
-    Request<LaserCanRangingMode, GrappleResult<()>>
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<LaserCanRangingMode, GrappleResult<'a, ()>>
   ),
   #[marshal(tag = "2")]
   SetRoi(
     #[marshal(ctx = "forward")]
-    Request<LaserCanRoi, GrappleResult<()>>
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<LaserCanRoi, GrappleResult<'a, ()>>
   ),
   #[marshal(tag = "3")]
   SetTimingBudget(
     #[marshal(ctx = "forward")]
-    Request<LaserCanTimingBudget, GrappleResult<()>>
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<LaserCanTimingBudget, GrappleResult<'a, ()>>
   ),
   #[marshal(tag = "4")]
   SetLedThreshold(
     #[marshal(ctx = "forward")]
-    Request<u16, GrappleResult<()>>    // 0 for off
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<u16, GrappleResult<'a, ()>>    // 0 for off
   )
 }
 
-impl Validate for LaserCanMessage {
+impl<'a> Validate for LaserCanMessage<'a> {
   fn validate(&self) -> GrappleResult<()> {
     match self {
       LaserCanMessage::Measurement(_) => Ok(()),
