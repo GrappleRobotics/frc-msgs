@@ -1,3 +1,5 @@
+use core::{borrow::Borrow, ops::{Index, RangeFull}, slice::SliceIndex};
+
 use binmarshal::{BitView, BufferBitWriter, BitWriter, Payload, Marshal, Demarshal, MarshalUpdate};
 use smallvec::SmallVec;
 
@@ -104,7 +106,7 @@ pub struct FragmentReassembler {
 
 impl FragmentReassembler {
   pub fn new(age_off: i64, max_fragment_size: usize) -> Self {
-    Self { rx: FragmentReassemblerRx { messages: alloc::vec![], age_off }, tx: FragmentReassemblerTx { max_fragment_size } }
+    Self { rx: FragmentReassemblerRx { messages: alloc::vec![], age_off }, tx: FragmentReassemblerTx { max_fragment_size, fragment_id: 0 } }
   }
 
   pub fn split(self) -> (FragmentReassemblerRx, FragmentReassemblerTx) {
@@ -119,10 +121,11 @@ pub struct FragmentReassemblerRx {
 
 pub struct FragmentReassemblerTx {
   max_fragment_size: usize,
+  fragment_id: u8,
 }
 
 impl FragmentReassemblerRx {
-  pub fn defragment<F: FnOnce(GrappleDeviceMessage<'_>)>(&mut self, now: i64, id: &MessageId, message: MaybeFragment, f: F) -> Result<(), binmarshal::MarshalError> {
+  pub fn defragment<'a, E: Extend<u8> + Index<RangeFull, Output = [u8]>>(&mut self, now: i64, id: &MessageId, message: MaybeFragment<'a>, storage: &'a mut E) -> Result<Option<GrappleDeviceMessage<'a>>, binmarshal::MarshalError> {
     self.messages.retain(|frags| (now - frags.last_seen) <= self.age_off);
 
     match message {
@@ -170,18 +173,13 @@ impl FragmentReassemblerRx {
 
             if n_bytes_seen >= total_len as usize {
               // Fragment is complete - reassemble it
-              let mut data: SmallVec<[u8; 64]> = smallvec::SmallVec::with_capacity(n_bytes_seen);     // 64 bytes is the max size of a CAN FD frame, which is generally a sane maximum for stack size.
-
               for el in &fragments.data {
                 if let Some(el) = el.as_ref() {
-                  data.extend(el.iter().map(|x| *x));
+                  storage.extend(el.iter().cloned());
                 }
               }
 
-              // TODO: This function should take a FnOnce instead, since then we can borrow the message without
-              // it needing to be owned.
-
-              let mut view = BitView::new(&data[..]);
+              let mut view = BitView::new(&storage[..]);
               let msg = GrappleDeviceMessage::read(&mut view, MessageId {
                 device_type: id.device_type,
                 manufacturer: MANUFACTURER_GRAPPLE,
@@ -191,34 +189,37 @@ impl FragmentReassemblerRx {
               }.into());
 
               match msg {
-                Ok(msg) => { f(msg); Some(Ok(())) },
-                Err(e) => Some(Err(e)),
+                Ok(msg) => Ok(Some(msg)),
+                Err(e) => Err(e),
               }
             } else {
-              None
+              Ok(None)
             }
           },
-          None => None
+          None => Ok(None)
         };
 
         match ret {
-          Some(v) => {
+          Ok(Some(v)) => {
             self.messages.remove(idx);
-            v
+            Ok(Some(v))
           },
-          None => Ok(())
+          Ok(None) => Ok(None),
+          Err(e) => {
+            self.messages.remove(idx);
+            Err(e)
+          },
         }
       },
       MaybeFragment::Message(msg) => {
-        f(msg);
-        Ok(())
+        Ok(Some(msg))
       },
     }
   }
 }
 
 impl FragmentReassemblerTx {
-  pub fn maybe_fragment<Consumer: FnMut(MessageId, &[u8])>(&self, device_id: u8, mut message: GrappleDeviceMessage, fragment_id: u8, consumer: &mut Consumer) -> Result<(), binmarshal::MarshalError> {
+  pub fn maybe_fragment<Consumer: FnMut(MessageId, &[u8])>(&mut self, device_id: u8, mut message: GrappleDeviceMessage, consumer: &mut Consumer) -> Result<(), binmarshal::MarshalError> {
     let mut payload = [0u8; 253];
     let mut writer = BufferBitWriter::new(&mut payload);
     
@@ -229,15 +230,15 @@ impl FragmentReassemblerTx {
 
     let payload_slice = writer.slice();
     
-    // TODO: All this here :)
-
     if payload_slice.len() <= self.max_fragment_size {
       consumer(id.into(), payload_slice)
     } else {
+      self.fragment_id = self.fragment_id.wrapping_add(1);
+
       let first_size = self.max_fragment_size - 3;
 
       let mut first = Fragment {
-        fragment_id,
+        fragment_id: self.fragment_id,
         index: 0,
         body: FragmentBody::Start { api_class: id.api_class, api_index: id.api_index, total_len: payload_slice.len() as u8 },
         payload: Payload(&payload_slice[0..first_size])
@@ -258,7 +259,7 @@ impl FragmentReassemblerTx {
         let n = self.max_fragment_size.min(payload_slice.len() - offset);
 
         let mut frag = Fragment {
-          fragment_id,
+          fragment_id: self.fragment_id,
           index: i,
           body: FragmentBody::Fragment,
           payload: Payload(&payload_slice[offset..offset + n])
