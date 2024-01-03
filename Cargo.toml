@@ -8,7 +8,7 @@ repository = "https://github.com/GrappleRobotics/frc-msgs"
 readme = "README.md"
 authors = ["Jaci Brunning"]
 
-license = "MIT"
+license = "GPL-3.0"
 
 [dependencies]
 anyhow = { version = "1.0.76", default-features = false }
