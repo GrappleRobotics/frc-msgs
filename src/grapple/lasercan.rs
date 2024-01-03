@@ -89,8 +89,8 @@ pub struct LaserCanMeasurement {
   pub status: u8,
   pub distance_mm: u16,
   pub ambient: u16,
-  pub long: LaserCanRangingMode,
-  pub budget_ms: LaserCanTimingBudget,
+  pub mode: LaserCanRangingMode,
+  pub budget: LaserCanTimingBudget,
   pub roi: LaserCanRoi
 }
 
