@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.2.2"
+version = "2024.3.0"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -12,7 +12,8 @@ license = "GPL-3.0"
 
 [dependencies]
 anyhow = { version = "1.0.76", default-features = false }
-binmarshal = { version = "^1.0.2", default-features = false, features = ["anyhow"] }
+binmarshal = { version = "^1.1.0", default-features = false, features = ["anyhow"] }
+bounded-static = { version = "0.7.0", default-features = false, features = ["alloc", "collections", "derive"] }
 schemars = { version = "0.8.12", features = ["smallvec"], optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 smallvec = "1.11.2"

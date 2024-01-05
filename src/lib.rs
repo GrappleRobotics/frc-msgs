@@ -13,6 +13,7 @@ pub use binmarshal;
 use binmarshal::Demarshal;
 use binmarshal::Marshal;
 use binmarshal::MarshalUpdate;
+use bounded_static::ToStatic;
 use grapple::MANUFACTURER_GRAPPLE;
 use grapple::MaybeFragment;
 use grapple::errors::GrappleResult;
@@ -21,7 +22,7 @@ pub const DEVICE_TYPE_BROADCAST: u8 = 0x00;
 pub const DEVICE_TYPE_FIRMWARE_UPGRADE: u8 = 31;
 pub const DEVICE_ID_BROADCAST: u8 = 0x3F;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct MessageId {
@@ -66,7 +67,7 @@ impl<'dm> Demarshal<'dm, ()> for MessageId {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Message<'a> {
@@ -110,7 +111,7 @@ impl<'a> Validate for Message<'a> {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.manufacturer")]

@@ -1,10 +1,11 @@
-use binmarshal::{Marshal, Demarshal, MarshalUpdate, Payload};
+use binmarshal::{Marshal, Demarshal, MarshalUpdate, Payload, AsymmetricCow};
+use bounded_static::ToStatic;
 
 use crate::Validate;
 
 use super::{GrappleMessageId, errors::GrappleResult};
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
@@ -14,8 +15,7 @@ pub enum GrappleFirmwareMessage<'a> {
 
   #[marshal(tag = "1")]
   UpdatePart(
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    Payload<'a>
+    AsymmetricCow<'a, Payload>
   ),
 
   #[marshal(tag = "2")]

@@ -1,10 +1,12 @@
 use crate::Validate;
-use binmarshal::{Proxy, BitSpecification, Marshal, Demarshal, MarshalUpdate, CowStr};
+use alloc::borrow::Cow;
+use binmarshal::{Proxy, BitSpecification, Marshal, Demarshal, MarshalUpdate};
+use bounded_static::ToStatic;
 use core::ops::{Deref, DerefMut};
 
 use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError}};
 
-#[derive(Proxy)]
+#[derive(Proxy, ToStatic)]
 #[repr(transparent)]
 pub struct LaserCanRoiU4(pub u8);
 
@@ -20,7 +22,7 @@ impl<'dm> Demarshal<'dm, ()> for LaserCanRoiU4 {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
@@ -34,7 +36,7 @@ pub struct LaserCanRoi {
 impl Validate for LaserCanRoi {
   fn validate(&self) -> GrappleResult<()> {
     if self.w.0 % 2 != 0 || self.h.0 % 2 != 0 {
-      Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("LaserCanRoi: width and height must be even")))?;
+      Err(GrappleError::ParameterOutOfBounds(Cow::Borrowed("LaserCanRoi: width and height must be even").into()))?;
     };
     let hw = self.w.0 / 2;
     let hh = self.h.0 / 2;
@@ -45,14 +47,14 @@ impl Validate for LaserCanRoi {
     let ymax = self.y.0 as i16 + hh as i16;
 
     if xmin < 0 || xmax > 16 || ymin < 0 || ymax > 16 {
-      Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("LaserCanRoi: out of bounds")))?;
+      Err(GrappleError::ParameterOutOfBounds(Cow::Borrowed("LaserCanRoi: out of bounds").into()))?;
     }
 
     Ok(())
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "u8", tag_bits = 7)]
@@ -68,7 +70,7 @@ pub enum LaserCanTimingBudget {
   TB100ms = 100,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "bool", tag_bits = 1)]
@@ -80,7 +82,7 @@ pub enum LaserCanRangingMode {
   Long
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
@@ -94,7 +96,7 @@ pub struct LaserCanMeasurement {
   pub roi: LaserCanRoi
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
@@ -139,7 +141,7 @@ impl<'a> Validate for LaserCanMessage<'a> {
         Request::Ack(_) => Ok(()),
         Request::Request(21..=4000) => Ok(()),
         Request::Request(0) => Ok(()),      // Turned off
-        _ => Err(GrappleError::ParameterOutOfBounds(CowStr::Borrowed("Invalid LED threshold. Must be under >20, <4000mm.")))
+        _ => Err(GrappleError::ParameterOutOfBounds(Cow::Borrowed("Invalid LED threshold. Must be under >20, <4000mm.").into()))
       }
     }
   }

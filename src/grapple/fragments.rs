@@ -1,13 +1,15 @@
-use core::{borrow::Borrow, ops::{Index, RangeFull}, slice::SliceIndex};
+use core::ops::{Index, RangeFull};
 
-use binmarshal::{BitView, BufferBitWriter, BitWriter, Payload, Marshal, Demarshal, MarshalUpdate};
+use alloc::borrow::Cow;
+use binmarshal::{BitView, BufferBitWriter, BitWriter, Payload, Marshal, Demarshal, MarshalUpdate, AsymmetricCow};
+use bounded_static::ToStatic;
 use smallvec::SmallVec;
 
 use crate::MessageId;
 
 use super::{GrappleMessageId, MaybeFragment, GrappleDeviceMessage, MANUFACTURER_GRAPPLE};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub enum FragmentBody {
@@ -19,15 +21,14 @@ pub enum FragmentBody {
   Fragment
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Fragment<'a> {
   fragment_id: u8,
   index: u8,
   body: FragmentBody,
-  #[cfg_attr(feature = "serde", serde(borrow))]
-  payload: Payload<'a>,
+  payload: AsymmetricCow<'a, Payload>,
 }
 
 impl<'a> Marshal<GrappleMessageId> for Fragment<'a> {
@@ -61,7 +62,7 @@ impl<'dm> Demarshal<'dm, GrappleMessageId> for Fragment<'dm> {
           fragment_id: ctx.api_class,
           index: 0,
           body: FragmentBody::Start { api_class, api_index, total_len },
-          payload: Payload::read(view, ())?
+          payload: Demarshal::read(view, ())?
         })
       },
       index => {
@@ -69,7 +70,7 @@ impl<'dm> Demarshal<'dm, GrappleMessageId> for Fragment<'dm> {
           fragment_id: ctx.api_class,
           index,
           body: FragmentBody::Fragment,
-          payload: Payload::read(view, ())?
+          payload: Demarshal::read(view, ())?
         })
       }
     }
@@ -241,7 +242,7 @@ impl FragmentReassemblerTx {
         fragment_id: self.fragment_id,
         index: 0,
         body: FragmentBody::Start { api_class: id.api_class, api_index: id.api_index, total_len: payload_slice.len() as u8 },
-        payload: Payload(&payload_slice[0..first_size])
+        payload: Cow::Borrowed(Into::<&Payload>::into(&payload_slice[0..first_size])).into()
       };
 
       // Serialise the first fragment, including an ID update
@@ -262,7 +263,7 @@ impl FragmentReassemblerTx {
           fragment_id: self.fragment_id,
           index: i,
           body: FragmentBody::Fragment,
-          payload: Payload(&payload_slice[offset..offset + n])
+          payload: Cow::Borrowed(Into::<&Payload>::into(&payload_slice[offset..offset + n])).into()
         };
 
         // Serialise remaining fragments, including an ID update

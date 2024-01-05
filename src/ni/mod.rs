@@ -1,11 +1,12 @@
 extern crate alloc;
 use binmarshal::{Demarshal, Marshal, MarshalUpdate};
+use bounded_static::ToStatic;
 
 use crate::MessageId;
 
 pub const MANUFACTURER_NI: u8 = 0x01;
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.device_type")]
@@ -17,7 +18,7 @@ pub enum NiDeviceMessage {
   )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.api_class")]
@@ -29,7 +30,7 @@ pub enum NiRobotControllerMessage {
   )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = MessageId, tag = "ctx.api_index")]
@@ -38,7 +39,7 @@ pub enum NiRioHeartbeat {
   Hearbeat(NiRioHearbeat1)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct NiRioHearbeat1 {

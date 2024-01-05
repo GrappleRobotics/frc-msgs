@@ -1,6 +1,8 @@
-use binmarshal::{Marshal, Demarshal, MarshalUpdate, CowStr};
+use alloc::borrow::Cow;
+use binmarshal::{Marshal, Demarshal, MarshalUpdate, AsymmetricCow};
+use bounded_static::ToStatic;
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate)]
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(tag_type = "u8")]
@@ -9,19 +11,18 @@ pub enum GrappleError<'a> {
   #[marshal(tag = "0")]
   ParameterOutOfBounds(
     #[cfg_attr(feature = "serde", serde(borrow))]
-    CowStr<'a>
+    AsymmetricCow<'a, str>
   ),
   
   #[marshal(tag = "1")]
   FailedAssertion(
     #[cfg_attr(feature = "serde", serde(borrow))]
-    CowStr<'a>
+    AsymmetricCow<'a, str>
   ),
 
   #[marshal(tag = "0xFF")]
   Generic(
-    #[cfg_attr(feature = "serde", serde(borrow))]
-    CowStr<'a>
+    AsymmetricCow<'a, str>
   ),
 }
 
@@ -39,7 +40,7 @@ impl<'a> std::fmt::Display for GrappleError<'a> {
 #[cfg(feature = "std")]
 impl<'a, E: std::error::Error> From<E> for GrappleError<'a> {
   fn from(value: E) -> Self {
-    Self::Generic(CowStr::Owned(format!("{}", value)))
+    Self::Generic(AsymmetricCow(Cow::Owned(format!("{}", value))))
   }
 }
 
