@@ -4,6 +4,9 @@ use binmarshal::{Proxy, BitSpecification, Marshal, Demarshal, MarshalUpdate};
 use bounded_static::ToStatic;
 use core::ops::{Deref, DerefMut};
 
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+
 use super::{GrappleMessageId, Request, errors::{GrappleResult, GrappleError}};
 
 #[derive(Proxy, ToStatic)]
@@ -25,6 +28,7 @@ impl<'dm> Demarshal<'dm, ()> for LaserCanRoiU4 {
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
 #[repr(C)]
 pub struct LaserCanRoi {
   pub x: LaserCanRoiU4,
@@ -57,6 +61,7 @@ impl Validate for LaserCanRoi {
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
 #[marshal(tag_type = "u8", tag_bits = 7)]
 #[repr(u8)]
 pub enum LaserCanTimingBudget {
@@ -73,6 +78,7 @@ pub enum LaserCanTimingBudget {
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
 #[marshal(tag_type = "bool", tag_bits = 1)]
 #[repr(u8)]
 pub enum LaserCanRangingMode {
@@ -85,6 +91,7 @@ pub enum LaserCanRangingMode {
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
 #[repr(C)]
 pub struct LaserCanMeasurement {
   // This struct should be 8 bytes or less to fit in a single status frame
