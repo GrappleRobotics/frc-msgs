@@ -8,20 +8,27 @@ use bounded_static::ToStatic;
 #[marshal(tag_type = "u8")]
 #[repr(C)]
 pub enum GrappleError<'a> {
-  #[marshal(tag = "0")]
+  #[marshal(tag = "0x00")]
   ParameterOutOfBounds(
     #[cfg_attr(feature = "serde", serde(borrow))]
     AsymmetricCow<'a, str>
   ),
   
-  #[marshal(tag = "1")]
+  #[marshal(tag = "0x01")]
   FailedAssertion(
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    AsymmetricCow<'a, str>
+  ),
+
+  #[marshal(tag = "0xFE")]
+  TimedOut(
     #[cfg_attr(feature = "serde", serde(borrow))]
     AsymmetricCow<'a, str>
   ),
 
   #[marshal(tag = "0xFF")]
   Generic(
+    #[cfg_attr(feature = "serde", serde(borrow))]
     AsymmetricCow<'a, str>
   ),
 }
@@ -32,7 +39,20 @@ impl<'a> std::fmt::Display for GrappleError<'a> {
     match self {
       GrappleError::ParameterOutOfBounds(oob) => write!(f, "Parameter Out of Bounds: {}", oob.as_ref()),
       GrappleError::FailedAssertion(msg) => write!(f, "Failed Assertion: {}", msg.as_ref()),
+      GrappleError::TimedOut(msg) => write!(f, "Timed Out: {}", msg.as_ref()),
       GrappleError::Generic(str) => write!(f, "Generic Error: {}", str.as_ref()),
+    }
+  }
+}
+
+// TODO: Build in get_tag() into binmarshal for this.
+impl<'a> GrappleError<'a> {
+  pub fn to_error_code(&self) -> u8 {
+    match self {
+      GrappleError::ParameterOutOfBounds(_) => 0x00,
+      GrappleError::FailedAssertion(_) => 0x01,
+      GrappleError::TimedOut(_) => 0xFE,
+      GrappleError::Generic(_) => 0xFF,
     }
   }
 }
