@@ -14,10 +14,16 @@ pub enum GrappleModelId {
   LaserCan = 0x10,
   #[marshal(tag = "0x20")]
   SpiderLan = 0x20,
+
+  // Codeword for a future product :)
   #[marshal(tag = "0x30")]
   #[allow(non_camel_case_types)]
-  // Codeword for a future product :)
   ACROBATIC_LEMUR = 0x30,
+
+  // Codeword for a future product :)
+  #[marshal(tag = "0x30")]
+  #[allow(non_camel_case_types)]
+  POWERFUL_PANDA = 0x40,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
