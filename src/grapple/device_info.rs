@@ -21,7 +21,7 @@ pub enum GrappleModelId {
   ACROBATIC_LEMUR = 0x30,
 
   // Codeword for a future product :)
-  #[marshal(tag = "0x30")]
+  #[marshal(tag = "0x40")]
   #[allow(non_camel_case_types)]
   POWERFUL_PANDA = 0x40,
 }
