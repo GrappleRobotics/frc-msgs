@@ -8,12 +8,15 @@ pub mod device_info;
 // pub mod spiderlan;
 #[cfg(feature = "grapple_lasercan")]
 pub mod lasercan;
+#[cfg(feature = "grapple_powerful_panda")]
+pub mod powerful_panda;
 pub mod firmware;
 pub mod fragments;
 pub mod errors;
 
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
+pub const DEVICE_TYPE_POWER_DISTRIBUTION_MODULE: u8 = 8;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,6 +170,14 @@ pub enum GrappleDeviceMessage<'a> {
     #[cfg_attr(feature = "serde", serde(borrow))]
     lasercan::LaserCanMessage<'a>
   ),
+
+  #[cfg(feature = "grapple_powerful_panda")]
+  #[marshal(tag = "DEVICE_TYPE_POWER_DISTRIBUTION_MODULE")]
+  PowerDistributionModule(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    powerful_panda::PowerfulPandaMessage<'a>
+  ),
 }
 
 impl<'a> Validate for GrappleDeviceMessage<'a> {
@@ -176,6 +187,8 @@ impl<'a> Validate for GrappleDeviceMessage<'a> {
       GrappleDeviceMessage::FirmwareUpdate(fw) => fw.validate(),
       #[cfg(feature = "grapple_lasercan")]
       GrappleDeviceMessage::DistanceSensor(lc) => lc.validate(),
+      #[cfg(feature = "grapple_powerful_panda")]
+      GrappleDeviceMessage::PowerDistributionModule(_) => Ok(()),
     }
   }
 }
