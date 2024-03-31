@@ -247,6 +247,7 @@ impl FragmentReassemblerTx {
 
       // Serialise the first fragment, including an ID update
       let mut id2 = GrappleMessageId::new(device_id);
+      id2.device_type = id.device_type;
       first.update(&mut id2);
       let mut buf: SmallVec<[u8; 8]> = smallvec::smallvec![0u8; self.max_fragment_size];
       let mut buf_writer = BufferBitWriter::new(&mut buf);
@@ -268,6 +269,7 @@ impl FragmentReassemblerTx {
 
         // Serialise remaining fragments, including an ID update
         let mut id3 = GrappleMessageId::new(device_id);
+        id3.device_type = id.device_type;
         frag.update(&mut id3);
         let mut buf = [0u8; 8];
         let mut buf_writer = BufferBitWriter::new(&mut buf);
