@@ -29,9 +29,10 @@ lasercan_nop_patch = ["binmarshal/lasercan_nop_patch"]
 
 ni = []
 grapple_lasercan = []
-grapple_powerful_panda = []
+grapple_mitocandria = []
+grapple_flexican = []
 
-default = ["std", "serde", "schema", "ni", "grapple_lasercan", "grapple_powerful_panda"]
+default = ["std", "serde", "schema", "ni", "grapple_lasercan", "grapple_mitocandria", "grapple_flexican"]
 
 [dev-dependencies]
 rand = "0.8.5"

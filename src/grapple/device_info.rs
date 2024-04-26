@@ -15,15 +15,11 @@ pub enum GrappleModelId {
   #[marshal(tag = "0x20")]
   SpiderLan = 0x20,
 
-  // Codeword for a future product :)
   #[marshal(tag = "0x30")]
-  #[allow(non_camel_case_types)]
-  ACROBATIC_LEMUR = 0x30,
+  FlexiCAN = 0x30,
 
-  // Codeword for a future product :)
   #[marshal(tag = "0x40")]
-  #[allow(non_camel_case_types)]
-  POWERFUL_PANDA = 0x40,
+  MitoCANdria = 0x40,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]

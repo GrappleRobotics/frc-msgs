@@ -5,11 +5,14 @@ use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, Messa
 use self::{device_info::GrappleDeviceInfo, firmware::GrappleFirmwareMessage, fragments::Fragment, errors::GrappleResult};
 
 pub mod device_info;
+pub mod encapsulation;
 // pub mod spiderlan;
 #[cfg(feature = "grapple_lasercan")]
 pub mod lasercan;
-#[cfg(feature = "grapple_powerful_panda")]
-pub mod powerful_panda;
+#[cfg(feature = "grapple_mitocandria")]
+pub mod mitocandria;
+#[cfg(feature = "grapple_flexican")]
+pub mod flexican;
 pub mod firmware;
 pub mod fragments;
 pub mod errors;
@@ -17,6 +20,7 @@ pub mod errors;
 pub const MANUFACTURER_GRAPPLE: u8 = 6;
 pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
 pub const DEVICE_TYPE_POWER_DISTRIBUTION_MODULE: u8 = 8;
+pub const DEVICE_TYPE_IO_BREAKOUT: u8 = 11;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -171,13 +175,21 @@ pub enum GrappleDeviceMessage<'a> {
     lasercan::LaserCanMessage<'a>
   ),
 
-  #[cfg(feature = "grapple_powerful_panda")]
+  #[cfg(feature = "grapple_mitocandria")]
   #[marshal(tag = "DEVICE_TYPE_POWER_DISTRIBUTION_MODULE")]
   PowerDistributionModule(
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
-    powerful_panda::PowerfulPandaMessage<'a>
+    mitocandria::PowerfulPandaMessage<'a>
   ),
+
+  #[cfg(feature = "grapple_flexican")]
+  #[marshal(tag = "DEVICE_TYPE_IO_BREAKOUT")]
+  IOBreakout(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    flexican::FlexiCANMessage<'a>
+  )
 }
 
 impl<'a> Validate for GrappleDeviceMessage<'a> {
@@ -187,8 +199,10 @@ impl<'a> Validate for GrappleDeviceMessage<'a> {
       GrappleDeviceMessage::FirmwareUpdate(fw) => fw.validate(),
       #[cfg(feature = "grapple_lasercan")]
       GrappleDeviceMessage::DistanceSensor(lc) => lc.validate(),
-      #[cfg(feature = "grapple_powerful_panda")]
+      #[cfg(feature = "grapple_mitocandria")]
       GrappleDeviceMessage::PowerDistributionModule(_) => Ok(()),
+      #[cfg(feature = "grapple_flexican")]
+      GrappleDeviceMessage::IOBreakout(_) => Ok(())
     }
   }
 }
