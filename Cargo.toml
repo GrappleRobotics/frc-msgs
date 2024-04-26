@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.3.8"
+version = "2024.4.0"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
