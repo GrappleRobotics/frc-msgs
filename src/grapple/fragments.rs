@@ -220,6 +220,10 @@ impl FragmentReassemblerRx {
 }
 
 impl FragmentReassemblerTx {
+  pub fn set_fragment_size(&mut self, size: usize) {
+    self.max_fragment_size = size;
+  }
+
   pub fn maybe_fragment<Consumer: FnMut(MessageId, &[u8])>(&mut self, device_id: u8, mut message: GrappleDeviceMessage, consumer: &mut Consumer) -> Result<(), binmarshal::MarshalError> {
     let mut payload = [0u8; 253];
     let mut writer = BufferBitWriter::new(&mut payload);

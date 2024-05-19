@@ -180,7 +180,7 @@ pub enum GrappleDeviceMessage<'a> {
   PowerDistributionModule(
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
-    mitocandria::PowerfulPandaMessage<'a>
+    mitocandria::MitocandriaMessage<'a>
   ),
 
   #[cfg(feature = "grapple_flexican")]

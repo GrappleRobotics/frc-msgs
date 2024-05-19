@@ -1,5 +1,3 @@
-// This is all temporary until we convert to FEVAMS prior to release.
-
 use binmarshal::{Demarshal, Marshal, MarshalUpdate};
 use bounded_static::ToStatic;
 
@@ -21,7 +19,14 @@ pub enum ChannelStatus {
   },
   #[marshal(tag = "1")]
   NonSwitchable {
-    current: u16
+    current: u16,
+  },
+  #[marshal(tag = "2")]
+  Adjustable {
+    enabled: bool,
+    voltage: u16,
+    voltage_setpoint: u16,
+    current: u16,
   }
 }
 
@@ -41,7 +46,38 @@ pub struct StatusFrame {
 #[repr(C)]
 pub struct SwitchableChannelRequest {
   pub channel: u8,
-  pub enabled: bool
+  pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
+#[repr(C)]
+pub struct AdjustableChannelRequest {
+  pub channel: u8,
+  pub enabled: bool,
+  pub voltage: u16
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[marshal(ctx = GrappleMessageId, tag = "ctx.api_index")]
+#[repr(C)]
+pub enum ChannelRequest<'a> {
+  #[marshal(tag = "0")]
+  SetSwitchableChannel(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<SwitchableChannelRequest, GrappleResult<'a, ()>>
+  ),
+  #[marshal(tag = "1")]
+  SetAdjustableChannel(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<AdjustableChannelRequest, GrappleResult<'a, ()>>
+  )
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
@@ -49,13 +85,13 @@ pub struct SwitchableChannelRequest {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
 #[repr(C)]
-pub enum PowerfulPandaMessage<'a> {
+pub enum MitocandriaMessage<'a> {
   #[marshal(tag = "0")]
   StatusFrame(StatusFrame),
   #[marshal(tag = "1")]
-  SetSwitchableChannel(
+  ChannelRequest(
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Request<SwitchableChannelRequest, GrappleResult<'a, ()>>
+    ChannelRequest<'a>
   )
 }
