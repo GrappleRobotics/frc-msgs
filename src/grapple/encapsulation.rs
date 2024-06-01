@@ -9,7 +9,7 @@ use super::{errors::GrappleResult, GrappleMessageId, Request};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct EncapsulatedMesssage<'a> {
-  pub channel: AsymmetricCow<'a, str>,
+  pub channel: u8,
   pub timestamp: u32,
   pub id: MessageId,
   pub data: AsymmetricCow<'a, LengthTaggedPayload<u8>>
@@ -31,13 +31,13 @@ pub enum BridgeMessages<'a> {
   StartBridge(
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Request<AsymmetricCow<'a, str>, GrappleResult<'a, ()>>
+    Request<u8, GrappleResult<'a, ()>>
   ),
   #[marshal(tag = "2")]
   StopBridge(
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
-    Request<AsymmetricCow<'a, str>, GrappleResult<'a, ()>>
+    Request<u8, GrappleResult<'a, ()>>
   ),
   #[marshal(tag = "3")]
   BridgeMessage(EncapsulatedMesssage<'a>)
