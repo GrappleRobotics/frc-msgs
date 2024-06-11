@@ -56,7 +56,6 @@ pub struct MitocandriaSwitchableChannelRequest {
 #[repr(C)]
 pub struct MitocandriaAdjustableChannelRequest {
   pub channel: u8,
-  pub enabled: bool,
   pub voltage: u16
 }
 
