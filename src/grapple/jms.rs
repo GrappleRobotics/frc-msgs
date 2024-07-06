@@ -1,4 +1,4 @@
-use binmarshal::{AsymmetricCow, BitSpecification, Demarshal, Marshal, MarshalUpdate, Payload, Proxy};
+use binmarshal::{AsymmetricCow, BitSpecification, Demarshal, LengthTaggedSlice, Marshal, MarshalUpdate, Payload, Proxy};
 use bounded_static::ToStatic;
 
 use super::GrappleMessageId;
@@ -16,14 +16,22 @@ pub enum JMSRole {
   Blue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[repr(C)]
+pub struct JMSCardStatus {
+  #[marshal(bits = 1)]
+  pub io_status: [bool; 8]
+}
+
+#[derive(Debug, Clone, PartialEq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[repr(C)]
 pub struct JMSElectronicsStatus {
   pub role: JMSRole,
-  #[marshal(bits = 1)]
-  pub io_status: [bool; 8]
+  pub cards: [JMSCardStatus; 2]
 }
 
 #[derive(Clone, Debug, PartialEq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
