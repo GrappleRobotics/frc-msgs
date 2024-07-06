@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.4.3"
+version = "2024.4.4"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -31,8 +31,9 @@ ni = []
 grapple_lasercan = []
 grapple_mitocandria = []
 grapple_flexican = []
+grapple_jms = []
 
-default = ["std", "serde", "schema", "ni", "grapple_lasercan", "grapple_mitocandria", "grapple_flexican"]
+default = ["std", "serde", "schema", "ni", "grapple_lasercan", "grapple_mitocandria", "grapple_flexican", "grapple_jms"]
 
 [dev-dependencies]
 rand = "0.8.5"

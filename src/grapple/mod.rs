@@ -13,6 +13,11 @@ pub mod lasercan;
 pub mod mitocandria;
 #[cfg(feature = "grapple_flexican")]
 pub mod flexican;
+#[cfg(feature = "grapple_jms")]
+pub mod jms;
+
+pub mod misc;
+
 pub mod firmware;
 pub mod fragments;
 pub mod errors;
@@ -22,6 +27,7 @@ pub const DEVICE_TYPE_DISTANCE_SENSOR: u8 = 6;
 pub const DEVICE_TYPE_POWER_DISTRIBUTION_MODULE: u8 = 8;
 pub const DEVICE_TYPE_IO_BREAKOUT: u8 = 11;
 pub const DEVICE_TYPE_SPIDERLAN: u8 = 12;
+pub const DEVICE_TYPE_MISC: u8 = 10;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
@@ -189,6 +195,13 @@ pub enum GrappleDeviceMessage<'a> {
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
     flexican::FlexiCANMessage<'a>
+  ),
+
+  #[marshal(tag = "30")]
+  Misc(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    misc::MiscMessage<'a>
   )
 }
 
@@ -202,7 +215,8 @@ impl<'a> Validate for GrappleDeviceMessage<'a> {
       #[cfg(feature = "grapple_mitocandria")]
       GrappleDeviceMessage::PowerDistributionModule(_) => Ok(()),
       #[cfg(feature = "grapple_flexican")]
-      GrappleDeviceMessage::IOBreakout(_) => Ok(())
+      GrappleDeviceMessage::IOBreakout(_) => Ok(()),
+      GrappleDeviceMessage::Misc(_) => Ok(()),
     }
   }
 }
