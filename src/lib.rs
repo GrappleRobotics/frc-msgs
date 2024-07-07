@@ -10,6 +10,7 @@ pub mod bridge;
 
 pub use binmarshal;
 
+use binmarshal::BitWriter;
 use binmarshal::Demarshal;
 use binmarshal::Marshal;
 use binmarshal::MarshalUpdate;

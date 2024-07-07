@@ -1,4 +1,4 @@
-use binmarshal::{Demarshal, MarshalUpdate, Marshal};
+use binmarshal::{BitWriter, Demarshal, Marshal, MarshalUpdate};
 use bounded_static::ToStatic;
 
 use crate::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, MessageId};
@@ -255,4 +255,13 @@ impl<'a> TaggedGrappleMessage<'a> {
   pub fn new(device_id: u8, msg: GrappleDeviceMessage<'a>) -> Self {
     Self { device_id, msg }
   }
+}
+
+pub fn write_direct<'a, T: BitWriter>(writer: &mut T, mut msg: TaggedGrappleMessage<'a>) -> Result<(), binmarshal::MarshalError> {
+  let mut id = GrappleMessageId::new(msg.device_id);
+  msg.msg.update(&mut id);
+  let id_bytes_out = writer.reserve_and_advance_aligned_slice(4)?;
+  id_bytes_out.copy_from_slice(&Into::<u32>::into(Into::<MessageId>::into(id.clone())).to_le_bytes()[..]);
+  msg.msg.write(writer, id)?;
+  Ok(())
 }
