@@ -15,7 +15,9 @@ pub enum JMSRole {
   #[marshal(tag = "2")]
   Blue(u8),
   #[marshal(tag = "3")]
-  Timer
+  TimerRed,
+  #[marshal(tag = "4")]
+  TimerBlue
 }
 
 /* STATUS */
