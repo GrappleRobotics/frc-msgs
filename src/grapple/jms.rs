@@ -76,9 +76,9 @@ pub enum Pattern {
   #[marshal(tag = "2")]
   DiagonalStripes(Colour, Colour),
   #[marshal(tag = "3")]
-  FillLeft(Colour, u8),
+  FillLeft(Colour, Colour, u8),
   #[marshal(tag = "4")]
-  FillRight(Colour, u8)
+  FillRight(Colour, Colour, u8)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
@@ -97,6 +97,7 @@ pub enum JMSCardUpdate<'a> {
     text: AsymmetricCow<'a, str>,
     text_colour: Colour,
     bottom_bar: Pattern,
+    top_bar: Pattern,
     background: Pattern,
   },
 }
