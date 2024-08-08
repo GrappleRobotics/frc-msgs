@@ -94,6 +94,7 @@ pub enum JMSCardUpdate<'a> {
   Lighting {
     text_back: AsymmetricCow<'a, str>,
     text_back_colour: Colour,
+    back_background: Pattern,
     text: AsymmetricCow<'a, str>,
     text_colour: Colour,
     bottom_bar: Pattern,
