@@ -127,5 +127,8 @@ pub enum JMSMessage<'a> {
   SetRole(JMSRole),
 
   #[marshal(tag = "2")]
-  Update(JMSElectronicsUpdate<'a>)
+  Update(JMSElectronicsUpdate<'a>),
+
+  #[marshal(tag = "3")]
+  Blink
 }
