@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2024.4.11"
+version = "2025.0.0"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -18,7 +18,7 @@ schemars = { version = "0.8.12", features = ["smallvec"], optional = true }
 serde = { version = "1.0.159", optional = true, features = ["derive"] }
 smallvec = "1.11.2"
 strum_macros = "0.24.3"
-pyo3 = { version = "0.19.0", optional = true }
+pyo3 = { version = "0.23.3", optional = true }
 
 [features]
 std = ["binmarshal/std", "anyhow/std"]

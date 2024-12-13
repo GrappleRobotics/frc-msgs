@@ -106,6 +106,7 @@ pub struct LaserCanMeasurement {
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
 #[repr(C)]
 pub enum LaserCanMessage<'a> {
