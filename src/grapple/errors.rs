@@ -2,6 +2,11 @@ use alloc::borrow::Cow;
 use binmarshal::{Marshal, Demarshal, MarshalUpdate, AsymmetricCow};
 use bounded_static::ToStatic;
 
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
+#[cfg(feature = "pyo3")]
+use pyo3::BoundObject;
+
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -72,3 +77,26 @@ impl<'a> From<GrappleError<'a>> for anyhow::Error {
 }
 
 pub type GrappleResult<'a, T> = core::result::Result<T, GrappleError<'a>>;
+
+
+#[derive(Debug)]
+#[cfg(feature = "pyo3")]
+#[cfg_attr(feature = "pyo3", pyclass)]
+#[pyo3(name = "GrappleResult")]
+#[repr(C)]
+pub struct GrappleResultPy {
+  pub error: Option<String>,
+  pub ok: Option<pyo3::PyObject>
+}
+
+#[cfg(feature = "pyo3")]
+pub fn convert_grpl_result_to_py<'py, T: IntoPyObject<'py> + Clone>(py: Python<'py>, obj: GrappleResult<'_, T>) -> PyResult<GrappleResultPy>{
+  match obj {
+    Ok(v) => {
+      return Ok(GrappleResultPy { error: None, ok: Some(v.into_pyobject(py).map_err(Into::into)?.into_any().unbind()) })
+    },
+    Err(e) => {
+      return Ok(GrappleResultPy { error: Some(e.to_string()), ok: None })
+    },
+  }
+}

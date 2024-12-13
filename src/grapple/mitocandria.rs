@@ -63,7 +63,6 @@ pub struct MitocandriaAdjustableChannelRequest {
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "pyo3", pyclass)]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_index")]
 #[repr(C)]
 pub enum MitocandriaChannelRequest<'a> {
@@ -84,7 +83,6 @@ pub enum MitocandriaChannelRequest<'a> {
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "pyo3", pyclass)]
 #[marshal(ctx = GrappleMessageId, tag = "ctx.api_class")]
 #[repr(C)]
 pub enum MitocandriaMessage<'a> {
