@@ -100,3 +100,18 @@ pub fn convert_grpl_result_to_py<'py, T: IntoPyObject<'py> + Clone>(py: Python<'
     },
   }
 }
+
+#[cfg(feature = "pyo3")]
+pub fn convert_optional_grpl_result_to_py<'py, T: IntoPyObject<'py> + Clone>(py: Python<'py>, obj: Option<GrappleResult<'_, T>>) -> PyResult<Option<GrappleResultPy>>{
+  match obj {
+    Some(Ok(v)) => {
+      return Ok(Some(GrappleResultPy { error: None, ok: Some(v.into_pyobject(py).map_err(Into::into)?.into_any().unbind()) }))
+    },
+    Some(Err(e)) => {
+      return Ok(Some(GrappleResultPy { error: Some(e.to_string()), ok: None }))
+    },
+    None => {
+      return Ok(None)
+    }
+  }
+}
