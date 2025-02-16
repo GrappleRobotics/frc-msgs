@@ -31,14 +31,33 @@ impl<'dm> Demarshal<'dm, ()> for LaserCanRoiU4 {
 #[cfg_attr(feature = "pyo3", pyclass)]
 #[repr(C)]
 pub struct LaserCanRoi {
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub x: LaserCanRoiU4,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub y: LaserCanRoiU4,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub w: LaserCanRoiU4,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub h: LaserCanRoiU4
+}
+
+#[cfg(feature = "pyo3")]
+#[pymethods]
+impl LaserCanRoi {
+  #[new]
+  fn py_new(x: u8, y: u8, w: u8, h: u8) -> PyResult<Self> {
+    Ok(Self { 
+      x: LaserCanRoiU4(x),
+      y: LaserCanRoiU4(y),
+      w: LaserCanRoiU4(w),
+      h: LaserCanRoiU4(h),
+    })
+  }
+
+  #[getter(x)]
+  fn py_x(&self) -> PyResult<u8> { Ok(*self.x) }
+  #[getter(y)]
+  fn py_y(&self) -> PyResult<u8> { Ok(*self.y) }
+  #[getter(w)]
+  fn py_w(&self) -> PyResult<u8> { Ok(*self.w) }
+  #[getter(h)]
+  fn py_h(&self) -> PyResult<u8> { Ok(*self.h) }
 }
 
 impl Validate for LaserCanRoi {
@@ -95,21 +114,15 @@ pub enum LaserCanRangingMode {
 #[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[cfg_attr(feature = "pyo3", pyclass)]
+#[cfg_attr(feature = "pyo3", pyclass(get_all))]
 #[repr(C)]
 pub struct LaserCanMeasurement {
   // This struct should be 8 bytes or less to fit in a single status frame
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub status: u8,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub distance_mm: u16,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub ambient: u16,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub mode: LaserCanRangingMode,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub budget: LaserCanTimingBudget,
-  #[cfg_attr(feature = "pyo3", pyo3(get))]
   pub roi: LaserCanRoi
 }
 
