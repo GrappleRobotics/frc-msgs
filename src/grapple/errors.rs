@@ -85,7 +85,9 @@ pub type GrappleResult<'a, T> = core::result::Result<T, GrappleError<'a>>;
 #[pyo3(name = "GrappleResult")]
 #[repr(C)]
 pub struct GrappleResultPy {
+  #[pyo3(get)]
   pub error: Option<String>,
+  #[pyo3(get)]
   pub ok: Option<pyo3::PyObject>
 }
 
