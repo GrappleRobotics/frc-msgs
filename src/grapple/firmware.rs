@@ -16,6 +16,16 @@ pub struct UpdatePartV2Payload<'a> {
   pub payload: AsymmetricCow<'a, Payload>
 }
 
+#[derive(Debug, Clone, PartialEq, Marshal, Demarshal, ToStatic)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))] 
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[repr(C)]
+pub struct FlashParameters {
+  pub flash_compat_version: u32,
+  pub align: u16,
+  pub payload_len: u16
+}
+
 #[derive(Debug, Clone, PartialEq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -42,6 +52,13 @@ pub enum GrappleFirmwareMessage<'a> {
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
     Request<UpdatePartV2Payload<'a>, GrappleResult<'a, ()>>
+  ),
+
+  #[marshal(tag = "5")]
+  GetFlashParameters(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<(), GrappleResult<'a, FlashParameters>>
   )
 }
 
