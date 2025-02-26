@@ -80,7 +80,7 @@ impl<'dm> Demarshal<'dm, GrappleMessageId> for Fragment<'dm> {
 impl<'a> MarshalUpdate<GrappleMessageId> for Fragment<'a> {
   fn update(&mut self, ctx: &mut GrappleMessageId) {
     ctx.fragment_flag = true;
-    ctx.ack_flag = false;
+    ctx.ack_flag = ctx.ack_flag;
     ctx.api_class = self.fragment_id;
     ctx.api_index = self.index;
   }
