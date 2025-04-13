@@ -34,11 +34,13 @@ pub enum GrappleFirmwareMessage<'a> {
   #[marshal(tag = "0")]
   StartFieldUpgrade { serial: u32 },
 
+  #[cfg(feature = "firmware_update_v1")]
   #[marshal(tag = "1")]
   UpdatePart(
     AsymmetricCow<'a, Payload>
   ),
 
+  #[cfg(feature = "firmware_update_v1")]
   #[marshal(tag = "2")]
   UpdatePartAck,
 

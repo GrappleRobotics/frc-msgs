@@ -1,6 +1,6 @@
 [package]
 name = "grapple-frc-msgs"
-version = "2025.0.8"
+version = "2025.0.9"
 edition = "2021"
 description = "Grapple's repository of FRC CAN and other protocols"
 documentation = "https://docs.rs/grapple-frc-msgs"
@@ -26,6 +26,7 @@ serde = ["dep:serde", "binmarshal/serde", "smallvec/serde"]
 schema = ["dep:schemars", "binmarshal/schema"]
 pyo3 = ["dep:pyo3"]
 lasercan_nop_patch = ["binmarshal/lasercan_nop_patch"]
+firmware_update_v1 = []
 
 ni = []
 grapple_lasercan = []
@@ -33,7 +34,7 @@ grapple_mitocandria = []
 grapple_flexican = []
 grapple_jms = []
 
-default = ["std", "serde", "schema", "ni", "grapple_lasercan", "grapple_mitocandria", "grapple_flexican", "grapple_jms"]
+default = ["std", "serde", "schema", "ni", "firmware_update_v1", "grapple_lasercan", "grapple_mitocandria", "grapple_flexican", "grapple_jms"]
 
 [dev-dependencies]
 rand = "0.8.5"

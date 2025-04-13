@@ -80,7 +80,7 @@ impl<'dm> Demarshal<'dm, GrappleMessageId> for Fragment<'dm> {
 impl<'a> MarshalUpdate<GrappleMessageId> for Fragment<'a> {
   fn update(&mut self, ctx: &mut GrappleMessageId) {
     ctx.fragment_flag = true;
-    ctx.ack_flag = ctx.ack_flag;
+    ctx.ack_flag = false;
     ctx.api_class = self.fragment_id;
     ctx.api_index = self.index;
   }
@@ -126,7 +126,7 @@ pub struct FragmentReassemblerTx {
 }
 
 impl FragmentReassemblerRx {
-  pub fn defragment<'a, E: Extend<u8> + Index<RangeFull, Output = [u8]>>(&mut self, now: i64, id: &MessageId, message: MaybeFragment<'a>, storage: &'a mut E) -> Result<Option<GrappleDeviceMessage<'a>>, binmarshal::MarshalError> {
+  pub fn defragment<'a, E: Extend<u8> + Index<RangeFull, Output = [u8]>>(&mut self, now: i64, id: &MessageId, message: MaybeFragment<'a>, storage: &'a mut E) -> Result<Option<(GrappleMessageId, GrappleDeviceMessage<'a>)>, binmarshal::MarshalError> {
     self.messages.retain(|frags| (now - frags.last_seen) <= self.age_off);
 
     match message {
@@ -181,16 +181,18 @@ impl FragmentReassemblerRx {
               }
 
               let mut view = BitView::new(&storage[..]);
-              let msg = GrappleDeviceMessage::read(&mut view, MessageId {
+              let mid = MessageId {
                 device_type: id.device_type,
                 manufacturer: MANUFACTURER_GRAPPLE,
                 api_class,
                 api_index,
                 device_id: id.device_id,
-              }.into());
+              };
+              let gmsgid: GrappleMessageId = mid.clone().into();
+              let msg = GrappleDeviceMessage::read(&mut view, gmsgid.clone());
 
               match msg {
-                Ok(msg) => Ok(Some(msg)),
+                Ok(msg) => Ok(Some((gmsgid, msg))),
                 Err(e) => Err(e),
               }
             } else {
@@ -213,7 +215,7 @@ impl FragmentReassemblerRx {
         }
       },
       MaybeFragment::Message(msg) => {
-        Ok(Some(msg))
+        Ok(Some((GrappleMessageId::from(id.clone()), msg)))
       },
     }
   }
@@ -231,6 +233,8 @@ impl FragmentReassemblerTx {
     let mut id = GrappleMessageId::new(device_id);
     message.update(&mut id);
 
+    let mid: MessageId = id.clone().into();
+
     message.write(&mut writer, id.clone())?;
 
     let payload_slice = writer.slice();
@@ -245,13 +249,13 @@ impl FragmentReassemblerTx {
       let mut first = Fragment {
         fragment_id: self.fragment_id,
         index: 0,
-        body: FragmentBody::Start { api_class: id.api_class, api_index: id.api_index, total_len: payload_slice.len() as u8 },
+        body: FragmentBody::Start { api_class: mid.api_class, api_index: mid.api_index, total_len: payload_slice.len() as u8 },
         payload: Cow::Borrowed(Into::<&Payload>::into(&payload_slice[0..first_size])).into()
       };
 
       // Serialise the first fragment, including an ID update
       let mut id2 = GrappleMessageId::new(device_id);
-      id2.device_type = id.device_type;
+      id2.device_type = mid.device_type;
       first.update(&mut id2);
       let mut buf: SmallVec<[u8; 8]> = smallvec::smallvec![0u8; self.max_fragment_size];
       let mut buf_writer = BufferBitWriter::new(&mut buf);
@@ -273,7 +277,7 @@ impl FragmentReassemblerTx {
 
         // Serialise remaining fragments, including an ID update
         let mut id3 = GrappleMessageId::new(device_id);
-        id3.device_type = id.device_type;
+        id3.device_type = mid.device_type;
         frag.update(&mut id3);
         let mut buf = [0u8; 8];
         let mut buf_writer = BufferBitWriter::new(&mut buf);
