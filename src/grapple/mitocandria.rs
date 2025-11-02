@@ -60,6 +60,15 @@ pub struct MitocandriaAdjustableChannelRequest {
   pub voltage: u16
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "pyo3", pyclass)]
+#[repr(C)]
+pub struct MitocandriaAdjustableChannelCalibrationRequest {
+  pub offset_mv: i16
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize), serde(tag = "type", content = "data"))] 
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -77,6 +86,12 @@ pub enum MitocandriaChannelRequest<'a> {
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
     Request<MitocandriaAdjustableChannelRequest, GrappleResult<'a, ()>>
+  ),
+  #[marshal(tag = "2")]
+  CalibrateAdjChannel(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<MitocandriaAdjustableChannelCalibrationRequest, GrappleResult<'a, ()>>
   )
 }
 
