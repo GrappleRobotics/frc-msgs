@@ -92,7 +92,13 @@ pub enum MitocandriaChannelRequest<'a> {
     #[marshal(ctx = "forward")]
     #[cfg_attr(feature = "serde", serde(borrow))]
     Request<MitocandriaAdjustableChannelCalibrationRequest, GrappleResult<'a, ()>>
-  )
+  ),
+  #[marshal(tag = "3")]
+  StartAutoCalibrate(
+    #[marshal(ctx = "forward")]
+    #[cfg_attr(feature = "serde", serde(borrow))]
+    Request<(), GrappleResult<'a, ()>>
+  ),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Marshal, Demarshal, MarshalUpdate, ToStatic)]
